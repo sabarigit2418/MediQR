@@ -13,6 +13,7 @@ export const Reports: React.FC = () => {
   const [includeAllergies, setIncludeAllergies] = useState(true);
   const [includeConditions, setIncludeConditions] = useState(true);
   const [includeLabs, setIncludeLabs] = useState(false);
+  const [includeDocuments, setIncludeDocuments] = useState(true);
 
   if (!user) return null;
 
@@ -148,6 +149,35 @@ export const Reports: React.FC = () => {
       doc.setTextColor(24, 28, 30);
       doc.text('• Blood Panel CBC (Normal ranges, completed 2026-04-12)', 15, currentY + 8);
       doc.text('• Glucose HbA1c (6.2%, controlled, Endocrinology)', 15, currentY + 15);
+      currentY += 23;
+    }
+
+    // 6. Clinical Documents & Verification
+    if (includeDocuments) {
+      doc.setFontSize(16);
+      doc.setTextColor(0, 61, 155);
+      doc.text('6. Clinical Documents & Verification', 15, currentY);
+      
+      doc.setFontSize(11);
+      let docY = currentY + 8;
+      
+      if (record.documents && record.documents.length > 0) {
+        record.documents.forEach((item) => {
+          const absoluteUrl = item.url.startsWith('http') 
+            ? item.url 
+            : `${window.location.origin}${item.url}`;
+            
+          doc.setTextColor(0, 102, 204); // Underline blue for links
+          doc.text(`• ${item.name} (${item.category}) [Click to View]`, 15, docY, { link: absoluteUrl });
+          docY += 7;
+        });
+      } else {
+        doc.setTextColor(24, 28, 30);
+        doc.text('No verified documents attached to this profile.', 15, docY);
+        docY += 7;
+      }
+      
+      currentY = docY + 3;
     }
 
     // Footer Info
@@ -247,6 +277,20 @@ export const Reports: React.FC = () => {
                 <div className="flex flex-col">
                   <span className="font-semibold text-sm text-on-surface">Recent Lab Results</span>
                   <span className="text-xs text-on-surface-variant mt-0.5">Summary of blood panels and glucose levels.</span>
+                </div>
+              </label>
+
+              {/* Option 6 */}
+              <label className="flex items-start gap-4 p-4 rounded-xl bg-surface/50 hover:bg-white/90 transition-all cursor-pointer border border-outline-variant/20">
+                <input 
+                  type="checkbox" 
+                  checked={includeDocuments}
+                  onChange={() => setIncludeDocuments(!includeDocuments)}
+                  className="mt-1 w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" 
+                />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm text-on-surface">Clinical Documents &amp; Certificates</span>
+                  <span className="text-xs text-on-surface-variant mt-0.5">Clickable links to your uploaded lab reports and certifications.</span>
                 </div>
               </label>
             </div>
@@ -350,6 +394,21 @@ export const Reports: React.FC = () => {
                   <div>
                     <h4 className="font-bold text-[9px] text-primary uppercase tracking-wider mb-1">Recent Lab Results</h4>
                     <p className="text-on-surface truncate">Blood Panel CBC &bull; Completed 2026-04-12</p>
+                  </div>
+                )}
+
+                {includeDocuments && record.documents && record.documents.length > 0 && (
+                  <div>
+                    <h4 className="font-bold text-[9px] text-teal-600 uppercase tracking-wider mb-1">Attached Documents</h4>
+                    <ul className="text-on-surface list-disc list-inside space-y-0.5">
+                      {record.documents.map((doc, idx) => (
+                        <li key={idx} className="truncate text-teal-600 font-semibold cursor-pointer hover:underline">
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                            {doc.name} ({doc.category})
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
