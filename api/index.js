@@ -96,6 +96,17 @@ try {
   console.error('Failed to initialize pg Pool. Check DATABASE_URL:', e);
 }
 
+// Database Connection Test Route
+app.get('/api/db-test', async (req, res) => {
+  if (!pool) return res.status(500).json({ success: false, error: 'Database connection pool not initialized.' });
+  try {
+    const result = await pool.query('SELECT 1 as test');
+    res.status(200).json({ success: true, message: 'Database connection is healthy!', result: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, stack: err.stack, envPresent: !!process.env.DATABASE_URL });
+  }
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
 
 // Middleware to authenticate token
