@@ -142,14 +142,15 @@ const getPatientRecord = async (userId) => {
   };
 };
 
-const savePatientRecord = async (userId, record) => {
+const savePatientRecord = async (userId, email, record) => {
   const qrId = record.qrId || `mqr-${userId.slice(0, 8)}`;
   
   await pool.query(
     `UPDATE profiles 
-     SET name = $1, age = $2, gender = $3, blood_group = $4, height = $5, weight = $6, photo = $7, date_of_birth = $8, mobile_number = $9, qr_id = $10, updated_at = CURRENT_TIMESTAMP
-     WHERE user_id = $11`,
+     SET email = $1, name = $2, age = $3, gender = $4, blood_group = $5, height = $6, weight = $7, photo = $8, date_of_birth = $9, mobile_number = $10, qr_id = $11, updated_at = CURRENT_TIMESTAMP
+     WHERE user_id = $12`,
     [
+      email,
       record.name || '',
       record.age || '',
       record.gender || '',
@@ -170,8 +171,8 @@ const savePatientRecord = async (userId, record) => {
     if (Array.isArray(record.conditions)) {
       for (const item of record.conditions) {
         await pool.query(
-          'INSERT INTO conditions (user_id, name, severity, notes) VALUES ($1, $2, $3, $4)',
-          [userId, item.name, item.severity || '', item.notes || '']
+          'INSERT INTO conditions (user_id, email, name, severity, notes) VALUES ($1, $2, $3, $4, $5)',
+          [userId, email, item.name, item.severity || '', item.notes || '']
         );
       }
     }
@@ -180,8 +181,8 @@ const savePatientRecord = async (userId, record) => {
     if (Array.isArray(record.allergies)) {
       for (const item of record.allergies) {
         await pool.query(
-          'INSERT INTO allergies (user_id, name, severity, notes) VALUES ($1, $2, $3, $4)',
-          [userId, item.name, item.severity || '', item.notes || '']
+          'INSERT INTO allergies (user_id, email, name, severity, notes) VALUES ($1, $2, $3, $4, $5)',
+          [userId, email, item.name, item.severity || '', item.notes || '']
         );
       }
     }
@@ -190,8 +191,8 @@ const savePatientRecord = async (userId, record) => {
     if (Array.isArray(record.medications)) {
       for (const item of record.medications) {
         await pool.query(
-          'INSERT INTO medications (user_id, name, dosage, frequency, purpose) VALUES ($1, $2, $3, $4, $5)',
-          [userId, item.name, item.dosage || '', item.frequency || '', item.purpose || '']
+          'INSERT INTO medications (user_id, email, name, dosage, frequency, purpose) VALUES ($1, $2, $3, $4, $5, $6)',
+          [userId, email, item.name, item.dosage || '', item.frequency || '', item.purpose || '']
         );
       }
     }
@@ -200,8 +201,8 @@ const savePatientRecord = async (userId, record) => {
     if (Array.isArray(record.contacts)) {
       for (const item of record.contacts) {
         await pool.query(
-          'INSERT INTO contacts (user_id, name, relationship, phone) VALUES ($1, $2, $3, $4)',
-          [userId, item.name, item.relationship || '', item.phone || '']
+          'INSERT INTO contacts (user_id, email, name, relationship, phone) VALUES ($1, $2, $3, $4, $5)',
+          [userId, email, item.name, item.relationship || '', item.phone || '']
         );
       }
     }
@@ -210,8 +211,8 @@ const savePatientRecord = async (userId, record) => {
     if (Array.isArray(record.documents)) {
       for (const item of record.documents) {
         await pool.query(
-          'INSERT INTO documents (id, user_id, name, date, size, category, url) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [item.id, userId, item.name, item.date || '', item.size || '', item.category || '', item.url || '']
+          'INSERT INTO documents (id, user_id, email, name, date, size, category, url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [item.id, userId, email, item.name, item.date || '', item.size || '', item.category || '', item.url || '']
         );
       }
     }
@@ -249,7 +250,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const userId = result.rows[0].id;
     const defaultQrId = `mqr-${userId.slice(0, 8)}`;
-    await pool.query('INSERT INTO profiles (user_id, qr_id) VALUES ($1, $2)', [userId, defaultQrId]);
+    await pool.query('INSERT INTO profiles (user_id, email, qr_id) VALUES ($1, $2, $3)', [userId, email, defaultQrId]);
 
     // Send OTP to email
     await sendOtpEmail(email, otp);
@@ -462,7 +463,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     const profileResult = await pool.query('SELECT * FROM profiles WHERE user_id = $1', [req.user.id]);
     if (profileResult.rows.length === 0) {
       const defaultQrId = `mqr-${user.id.slice(0, 8)}`;
-      await pool.query('INSERT INTO profiles (user_id, qr_id) VALUES ($1, $2)', [req.user.id, defaultQrId]);
+      await pool.query('INSERT INTO profiles (user_id, email, qr_id) VALUES ($1, $2, $3)', [req.user.id, user.email, defaultQrId]);
     }
 
     const patientRecord = await getPatientRecord(req.user.id);
@@ -535,7 +536,7 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
     }
 
     if (patientRecord) {
-      await savePatientRecord(req.user.id, patientRecord);
+      await savePatientRecord(req.user.id, req.user.email, patientRecord);
     }
 
     res.status(200).json({ success: true });
@@ -640,6 +641,9 @@ app.post('/api/records/:qrId', async (req, res) => {
 
     if (result.rows.length > 0) {
       const userId = result.rows[0].user_id;
+      const userRes = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
+      const email = userRes.rows[0]?.email || '';
+
       if (privacySettings) {
         await pool.query(
           `UPDATE profiles SET privacy_settings = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2`,
@@ -647,7 +651,7 @@ app.post('/api/records/:qrId', async (req, res) => {
         );
       }
       if (patientRecord) {
-        await savePatientRecord(userId, patientRecord);
+        await savePatientRecord(userId, email, patientRecord);
       }
     }
 

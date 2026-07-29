@@ -23,6 +23,7 @@ CREATE TABLE users (
 -- Profiles Table (Basic Info)
 CREATE TABLE profiles (
   user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  email VARCHAR(255) DEFAULT '',
   phone VARCHAR(50) DEFAULT '',
   name VARCHAR(255) DEFAULT '',
   age VARCHAR(10) DEFAULT '',
@@ -44,6 +45,7 @@ CREATE TABLE profiles (
 CREATE TABLE conditions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  email VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   severity VARCHAR(100) DEFAULT '',
   notes TEXT DEFAULT ''
@@ -53,6 +55,7 @@ CREATE TABLE conditions (
 CREATE TABLE allergies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  email VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   severity VARCHAR(100) DEFAULT '',
   notes TEXT DEFAULT ''
@@ -62,6 +65,7 @@ CREATE TABLE allergies (
 CREATE TABLE medications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  email VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   dosage VARCHAR(255) DEFAULT '',
   frequency VARCHAR(255) DEFAULT '',
@@ -72,6 +76,7 @@ CREATE TABLE medications (
 CREATE TABLE contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  email VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   relationship VARCHAR(255) DEFAULT '',
   phone VARCHAR(100) DEFAULT ''
@@ -81,6 +86,7 @@ CREATE TABLE contacts (
 CREATE TABLE documents (
   id VARCHAR(255) PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  email VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   date VARCHAR(100) DEFAULT '',
   size VARCHAR(100) DEFAULT '',
