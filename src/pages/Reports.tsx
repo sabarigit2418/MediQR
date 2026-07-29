@@ -163,12 +163,13 @@ export const Reports: React.FC = () => {
       
       if (record.documents && record.documents.length > 0) {
         record.documents.forEach((item) => {
-          const absoluteUrl = item.url.startsWith('http') 
-            ? item.url 
-            : `${window.location.origin}${item.url}`;
+          const urlStr = item.url || '';
+          const absoluteUrl = urlStr.startsWith('http') 
+            ? urlStr 
+            : `${window.location.origin}${urlStr}`;
             
           doc.setTextColor(0, 102, 204); // Underline blue for links
-          doc.text(`• ${item.name} (${item.category}) [Click to View]`, 15, docY, { link: absoluteUrl });
+          doc.text(`• ${item.name} (${item.category}) [Click to View]`, 15, docY, { link: absoluteUrl } as any);
           docY += 7;
         });
       } else {

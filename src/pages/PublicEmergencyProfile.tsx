@@ -13,6 +13,7 @@ interface DhoniDocument {
   type: string;
   size?: string;
   category?: string;
+  url?: string;
 }
 
 // Define Extended types for Dhoni's extra fields, overriding 'documents'
