@@ -56,22 +56,58 @@ export const Documents: React.FC = () => {
     setUploadProgress(20);
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setUploadProgress(100);
+    reader.onloadend = async () => {
+      setUploadProgress(50);
       
       const base64String = reader.result as string;
       
-      addDocument({
-        name: docName.trim(),
-        category: docCategory,
-        size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
-        url: base64String
-      });
-      
-      setUploading(false);
-      setShowUploadModal(false);
-      setSelectedFile(null);
-      setUploadProgress(0);
+      try {
+        const token = localStorage.getItem('auth_token');
+        const uploadResponse = await fetch('/api/documents/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fileName: selectedFile.name,
+            fileType: selectedFile.type,
+            fileData: base64String
+          })
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Server upload failed');
+        }
+
+        const data = await uploadResponse.json();
+        setUploadProgress(90);
+
+        addDocument({
+          name: docName.trim(),
+          category: docCategory,
+          size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
+          url: data.fileUrl // Store the static URL path returned by server
+        });
+
+        setUploadProgress(100);
+      } catch (err) {
+        console.error('Document server upload failed:', err);
+        alert('Failed to upload document to server. Saving fallback copy locally...');
+        
+        // Fallback: save local data URL if server upload fails
+        addDocument({
+          name: docName.trim(),
+          category: docCategory,
+          size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
+          url: base64String
+        });
+      } finally {
+        setUploading(false);
+        setShowUploadModal(false);
+        setSelectedFile(null);
+        setUploadProgress(0);
+      }
     };
     
     reader.onerror = (error) => {

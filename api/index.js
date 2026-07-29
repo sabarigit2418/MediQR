@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,7 +67,14 @@ const sendOtpEmail = async (email, otp) => {
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+const uploadsDir = path.resolve(__dirname, '..', 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 
 app.use((req, res, next) => {
   if (!req.body) req.body = {};
@@ -102,6 +110,119 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// --- DATABASE NORMALIZED HELPERS ---
+
+const getPatientRecord = async (userId) => {
+  const profileResult = await pool.query('SELECT * FROM profiles WHERE user_id = $1', [userId]);
+  if (profileResult.rows.length === 0) return null;
+  const profile = profileResult.rows[0];
+
+  const conditionsResult = await pool.query('SELECT name, severity, notes FROM conditions WHERE user_id = $1', [userId]);
+  const allergiesResult = await pool.query('SELECT name, severity, notes FROM allergies WHERE user_id = $1', [userId]);
+  const medicationsResult = await pool.query('SELECT name, dosage, frequency, purpose FROM medications WHERE user_id = $1', [userId]);
+  const contactsResult = await pool.query('SELECT name, relationship, phone FROM contacts WHERE user_id = $1', [userId]);
+  const documentsResult = await pool.query('SELECT id, name, date, size, category, url FROM documents WHERE user_id = $1', [userId]);
+
+  return {
+    name: profile.name || '',
+    age: profile.age || '',
+    gender: profile.gender || '',
+    bloodGroup: profile.blood_group || '',
+    height: profile.height || '',
+    weight: profile.weight || '',
+    photo: profile.photo || '',
+    dateOfBirth: profile.date_of_birth || '',
+    mobileNumber: profile.mobile_number || '',
+    qrId: profile.qr_id || `mqr-${userId.slice(0, 8)}`,
+    conditions: conditionsResult.rows || [],
+    allergies: allergiesResult.rows || [],
+    medications: medicationsResult.rows || [],
+    contacts: contactsResult.rows || [],
+    documents: documentsResult.rows || []
+  };
+};
+
+const savePatientRecord = async (userId, record) => {
+  const qrId = record.qrId || `mqr-${userId.slice(0, 8)}`;
+  
+  await pool.query(
+    `UPDATE profiles 
+     SET name = $1, age = $2, gender = $3, blood_group = $4, height = $5, weight = $6, photo = $7, date_of_birth = $8, mobile_number = $9, qr_id = $10, updated_at = CURRENT_TIMESTAMP
+     WHERE user_id = $11`,
+    [
+      record.name || '',
+      record.age || '',
+      record.gender || '',
+      record.bloodGroup || '',
+      record.height || '',
+      record.weight || '',
+      record.photo || '',
+      record.dateOfBirth || '',
+      record.mobileNumber || '',
+      qrId,
+      userId
+    ]
+  );
+
+  await pool.query('BEGIN');
+  try {
+    await pool.query('DELETE FROM conditions WHERE user_id = $1', [userId]);
+    if (Array.isArray(record.conditions)) {
+      for (const item of record.conditions) {
+        await pool.query(
+          'INSERT INTO conditions (user_id, name, severity, notes) VALUES ($1, $2, $3, $4)',
+          [userId, item.name, item.severity || '', item.notes || '']
+        );
+      }
+    }
+
+    await pool.query('DELETE FROM allergies WHERE user_id = $1', [userId]);
+    if (Array.isArray(record.allergies)) {
+      for (const item of record.allergies) {
+        await pool.query(
+          'INSERT INTO allergies (user_id, name, severity, notes) VALUES ($1, $2, $3, $4)',
+          [userId, item.name, item.severity || '', item.notes || '']
+        );
+      }
+    }
+
+    await pool.query('DELETE FROM medications WHERE user_id = $1', [userId]);
+    if (Array.isArray(record.medications)) {
+      for (const item of record.medications) {
+        await pool.query(
+          'INSERT INTO medications (user_id, name, dosage, frequency, purpose) VALUES ($1, $2, $3, $4, $5)',
+          [userId, item.name, item.dosage || '', item.frequency || '', item.purpose || '']
+        );
+      }
+    }
+
+    await pool.query('DELETE FROM contacts WHERE user_id = $1', [userId]);
+    if (Array.isArray(record.contacts)) {
+      for (const item of record.contacts) {
+        await pool.query(
+          'INSERT INTO contacts (user_id, name, relationship, phone) VALUES ($1, $2, $3, $4)',
+          [userId, item.name, item.relationship || '', item.phone || '']
+        );
+      }
+    }
+
+    await pool.query('DELETE FROM documents WHERE user_id = $1', [userId]);
+    if (Array.isArray(record.documents)) {
+      for (const item of record.documents) {
+        await pool.query(
+          'INSERT INTO documents (id, user_id, name, date, size, category, url) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [item.id, userId, item.name, item.date || '', item.size || '', item.category || '', item.url || '']
+        );
+      }
+    }
+
+    await pool.query('COMMIT');
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+};
+
 // --- AUTH ENDPOINTS ---
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -127,7 +248,8 @@ app.post('/api/auth/signup', async (req, res) => {
     );
 
     const userId = result.rows[0].id;
-    await pool.query('INSERT INTO profiles (user_id) VALUES ($1)', [userId]);
+    const defaultQrId = `mqr-${userId.slice(0, 8)}`;
+    await pool.query('INSERT INTO profiles (user_id, qr_id) VALUES ($1, $2)', [userId, defaultQrId]);
 
     // Send OTP to email
     await sendOtpEmail(email, otp);
@@ -329,19 +451,23 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   if (!pool) return res.status(500).json({ success: false, error: 'Database connection not initialized.' });
   try {
     const userResult = await pool.query('SELECT id, email FROM users WHERE id = $1', [req.user.id]);
-    const profileResult = await pool.query('SELECT * FROM profiles WHERE user_id = $1', [req.user.id]);
-
+    
     if (userResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
+    const user = userResult.rows[0];
+
     // Auto-create profile if missing
+    const profileResult = await pool.query('SELECT * FROM profiles WHERE user_id = $1', [req.user.id]);
     if (profileResult.rows.length === 0) {
-      await pool.query('INSERT INTO profiles (user_id) VALUES ($1)', [req.user.id]);
+      const defaultQrId = `mqr-${user.id.slice(0, 8)}`;
+      await pool.query('INSERT INTO profiles (user_id, qr_id) VALUES ($1, $2)', [req.user.id, defaultQrId]);
     }
 
-    const user = userResult.rows[0];
-    const profile = profileResult.rows[0] || {};
+    const patientRecord = await getPatientRecord(req.user.id);
+    const updatedProfileResult = await pool.query('SELECT phone, privacy_settings, notifications FROM profiles WHERE user_id = $1', [req.user.id]);
+    const profile = updatedProfileResult.rows[0] || {};
 
     res.status(200).json({
       success: true,
@@ -349,7 +475,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
         id: user.id,
         email: user.email,
         phone: profile.phone || '',
-        patientRecord: profile.patient_record || {},
+        patientRecord: patientRecord || {},
         privacySettings: profile.privacy_settings || {},
         notifications: profile.notifications || []
       }
@@ -394,18 +520,24 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
   try {
     const existing = await pool.query('SELECT user_id FROM profiles WHERE user_id = $1', [req.user.id]);
     if (existing.rows.length === 0) {
+      const defaultQrId = `mqr-${req.user.id.slice(0, 8)}`;
       await pool.query(
-        'INSERT INTO profiles (user_id, phone, patient_record, privacy_settings, notifications) VALUES ($1,$2,$3,$4,$5)',
-        [req.user.id, phone || '', patientRecord || {}, privacySettings || {}, notifications || []]
+        'INSERT INTO profiles (user_id, phone, privacy_settings, notifications, qr_id) VALUES ($1,$2,$3,$4,$5)',
+        [req.user.id, phone || '', privacySettings || {}, notifications || [], defaultQrId]
       );
     } else {
       await pool.query(
         `UPDATE profiles
-         SET phone = $1, patient_record = $2, privacy_settings = $3, notifications = $4, updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = $5`,
-        [phone || '', patientRecord || {}, privacySettings || {}, notifications || [], req.user.id]
+         SET phone = $1, privacy_settings = $2, notifications = $3, updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = $4`,
+        [phone || '', privacySettings || {}, notifications || [], req.user.id]
       );
     }
+
+    if (patientRecord) {
+      await savePatientRecord(req.user.id, patientRecord);
+    }
+
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('Profile update error:', error);
@@ -435,6 +567,38 @@ app.post('/api/profiles/onboarding', authenticateToken, async (req, res) => {
   }
 });
 
+// Document Upload Endpoint (Saves to server and returns static URL)
+app.post('/api/documents/upload', authenticateToken, async (req, res) => {
+  const { fileName, fileType, fileData } = req.body || {};
+  
+  if (!fileName || !fileData) {
+    return res.status(400).json({ error: 'File name and file data are required' });
+  }
+
+  try {
+    // Strip header prefix if present (e.g., "data:application/pdf;base64,")
+    const base64Data = fileData.replace(/^data:.*?;base64,/, "");
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    // Create unique safe name
+    const fileExt = path.extname(fileName) || '.pdf';
+    const baseName = path.basename(fileName, fileExt).replace(/[^a-zA-Z0-9]/g, '_');
+    const uniqueFileName = `${baseName}_${Date.now()}${fileExt}`;
+    const filePath = path.join(uploadsDir, uniqueFileName);
+    
+    // Save to disk
+    fs.writeFileSync(filePath, buffer);
+    console.log(`💾 Saved uploaded document: ${filePath}`);
+
+    // Return relative URL
+    const fileUrl = `/uploads/${uniqueFileName}`;
+    res.status(200).json({ fileUrl });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ error: 'Failed to upload document to server' });
+  }
+});
+
 // --- QR / RECORDS ENDPOINTS ---
 
 // ✅ GET — fetch emergency profile by QR ID (used by PublicEmergencyProfile page)
@@ -443,14 +607,17 @@ app.get('/api/records/:qrId', async (req, res) => {
   const { qrId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT patient_record, privacy_settings FROM profiles WHERE patient_record->>'qrId' = $1`,
+      `SELECT user_id, privacy_settings FROM profiles WHERE qr_id = $1`,
       [qrId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'QR code not found' });
     }
+    const userId = result.rows[0].user_id;
+    const patientRecord = await getPatientRecord(userId);
+
     res.status(200).json({
-      patientRecord: result.rows[0].patient_record,
+      patientRecord: patientRecord,
       privacySettings: result.rows[0].privacy_settings,
     });
   } catch (error) {
@@ -467,16 +634,21 @@ app.post('/api/records/:qrId', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT user_id FROM profiles WHERE patient_record->>'qrId' = $1`,
+      `SELECT user_id FROM profiles WHERE qr_id = $1`,
       [qrId]
     );
 
     if (result.rows.length > 0) {
       const userId = result.rows[0].user_id;
-      await pool.query(
-        `UPDATE profiles SET patient_record = $1, privacy_settings = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3`,
-        [patientRecord, privacySettings, userId]
-      );
+      if (privacySettings) {
+        await pool.query(
+          `UPDATE profiles SET privacy_settings = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2`,
+          [privacySettings, userId]
+        );
+      }
+      if (patientRecord) {
+        await savePatientRecord(userId, patientRecord);
+      }
     }
 
     res.status(200).json({ success: true });
@@ -502,9 +674,25 @@ app.post('/api/admin/users', async (req, res) => {
         u.email, 
         p.phone, 
         p.onboarding_complete,
-        p.patient_record,
         p.privacy_settings,
-        p.notifications
+        p.notifications,
+        jsonb_build_object(
+          'name', p.name,
+          'age', p.age,
+          'gender', p.gender,
+          'bloodGroup', p.blood_group,
+          'height', p.height,
+          'weight', p.weight,
+          'photo', p.photo,
+          'dateOfBirth', p.date_of_birth,
+          'mobileNumber', p.mobile_number,
+          'qrId', p.qr_id,
+          'conditions', COALESCE((SELECT json_agg(json_build_object('name', c.name, 'severity', c.severity, 'notes', c.notes)) FROM conditions c WHERE c.user_id = u.id), '[]'::json),
+          'allergies', COALESCE((SELECT json_agg(json_build_object('name', a.name, 'severity', a.severity, 'notes', a.notes)) FROM allergies a WHERE a.user_id = u.id), '[]'::json),
+          'medications', COALESCE((SELECT json_agg(json_build_object('name', m.name, 'dosage', m.dosage, 'frequency', m.frequency, 'purpose', m.purpose)) FROM medications m WHERE m.user_id = u.id), '[]'::json),
+          'contacts', COALESCE((SELECT json_agg(json_build_object('name', ec.name, 'relationship', ec.relationship, 'phone', ec.phone)) FROM contacts ec WHERE ec.user_id = u.id), '[]'::json),
+          'documents', COALESCE((SELECT json_agg(json_build_object('id', d.id, 'name', d.name, 'date', d.date, 'size', d.size, 'category', d.category, 'url', d.url)) FROM documents d WHERE d.user_id = u.id), '[]'::json)
+        ) AS patient_record
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
       ORDER BY u.email ASC;

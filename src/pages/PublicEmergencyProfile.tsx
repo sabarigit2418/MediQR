@@ -1663,103 +1663,135 @@ export const PublicEmergencyProfile: React.FC = () => {
                 </div>
 
                 {/* Document Conditional Content */}
-                {selectedDoc.name === "Prescription" && (
+                {selectedDoc.url ? (
                   <div className="space-y-3">
-                    <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">Rx - Prescription Details</h5>
-                    <div className="space-y-3">
-                      {record.medications && record.medications.map((med, idx) => (
-                        <div key={idx} className="flex justify-between items-center border-b border-dashed border-slate-100 pb-2 last:border-b-0">
-                          <div>
-                            <strong className="text-xs sm:text-sm font-semibold">{idx + 1}. {med.name} {med.dosage}</strong>
-                            <p className="text-[#6B7A99] mt-0.5 text-[10px] sm:text-xs">Take {med.frequency} {med.purpose ? `for ${med.purpose}` : ''}.</p>
+                    <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">
+                      File Attachment: {selectedDoc.name}
+                    </h5>
+                    
+                    <div className="flex justify-end mb-2">
+                      <a 
+                        href={selectedDoc.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold bg-[#1B3A6B] text-white rounded-lg shadow hover:bg-slate-800 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                        Open in New Tab
+                      </a>
+                    </div>
+
+                    {(selectedDoc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) || selectedDoc.url.startsWith('data:image/')) ? (
+                      <div className="flex justify-center p-2 border border-slate-200 rounded-lg overflow-hidden bg-slate-900 max-h-[350px]">
+                        <img src={selectedDoc.url} alt={selectedDoc.name} className="max-h-[330px] object-contain rounded" />
+                      </div>
+                    ) : (
+                      <div className="border border-slate-200 rounded-lg overflow-hidden h-[350px]">
+                        <iframe src={selectedDoc.url} className="w-full h-full border-0" title={selectedDoc.name} />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {selectedDoc.name === "Prescription" && (
+                      <div className="space-y-3">
+                        <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">Rx - Prescription Details</h5>
+                        <div className="space-y-3">
+                          {record.medications && record.medications.map((med, idx) => (
+                            <div key={idx} className="flex justify-between items-center border-b border-dashed border-slate-100 pb-2 last:border-b-0">
+                              <div>
+                                <strong className="text-xs sm:text-sm font-semibold">{idx + 1}. {med.name} {med.dosage}</strong>
+                                <p className="text-[#6B7A99] mt-0.5 text-[10px] sm:text-xs">Take {med.frequency} {med.purpose ? `for ${med.purpose}` : ''}.</p>
+                              </div>
+                              <span className="text-[9px] sm:text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold uppercase">Oral</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedDoc.name === "Blood Report" && (
+                      <div className="space-y-3">
+                        <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">Clinical Chemistry Summary Panel</h5>
+                        <table className="w-full text-left border-collapse text-[10px] sm:text-xs">
+                          <thead>
+                            <tr className="border-b border-[#E0E6EF] text-[#6B7A99] text-[9px] uppercase">
+                              <th className="py-1">Test Component</th>
+                              <th className="py-1">Result</th>
+                              <th className="py-1">Reference intervals</th>
+                              <th className="py-1">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#E0E6EF]/50">
+                            {record.labResults && record.labResults.map((lab, index) => (
+                              <tr key={index}>
+                                <td className="py-2 font-medium">{lab.test}</td>
+                                <td className="py-2 font-mono font-bold text-[#1B3A6B]">{lab.result}</td>
+                                <td className="py-2 text-[#6B7A99] font-mono text-[10px] leading-tight">{lab.range}</td>
+                                <td className="py-2 text-green-600 font-bold">NORMAL</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {selectedDoc.name === "ECG Report" && (
+                      <div className="space-y-3">
+                        <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">12-Lead Electrocardiogram Summary</h5>
+                        <div className="bg-red-50/60 p-3 sm:p-4 rounded-xl border border-red-100 flex flex-col items-center justify-center space-y-3">
+                          <span className="text-[9px] sm:text-[10px] text-red-800 font-extrabold uppercase bg-red-100 border border-red-200 px-2.5 py-0.5 rounded-full">Normal Sinus Rhythm</span>
+                          
+                          {/* Animated/Styled ECG wave line */}
+                          <svg width="100%" height="60" viewBox="0 0 400 80" className="stroke-[#E53935] stroke-2 fill-none stroke-round">
+                            <path d="M0,40 H40 L50,30 L60,50 L70,40 H100 L110,20 L125,70 L135,10 L145,45 L155,40 H200 L210,30 L220,50 L230,40 H260 L270,20 L285,70 L295,10 L305,45 L315,40 H360 L370,30 L380,50 L390,40 H400" />
+                          </svg>
+                          
+                          <div className="grid grid-cols-3 gap-3 text-center w-full pt-1 text-[9px] sm:text-[10px]">
+                            <div>
+                              <strong className="block text-slate-700">Heart Rate</strong>
+                              <span className="font-bold text-[#1B3A6B]">72 bpm</span>
+                            </div>
+                            <div>
+                              <strong className="block text-slate-700">PR Interval</strong>
+                              <span className="font-bold text-[#1B3A6B]">142 ms</span>
+                            </div>
+                            <div>
+                              <strong className="block text-slate-700">QRS Duration</strong>
+                              <span className="font-bold text-[#1B3A6B]">88 ms</span>
+                            </div>
                           </div>
-                          <span className="text-[9px] sm:text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold uppercase">Oral</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedDoc.name === "Blood Report" && (
-                  <div className="space-y-3">
-                    <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">Clinical Chemistry Summary Panel</h5>
-                    <table className="w-full text-left border-collapse text-[10px] sm:text-xs">
-                      <thead>
-                        <tr className="border-b border-[#E0E6EF] text-[#6B7A99] text-[9px] uppercase">
-                          <th className="py-1">Test Component</th>
-                          <th className="py-1">Result</th>
-                          <th className="py-1">Reference intervals</th>
-                          <th className="py-1">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#E0E6EF]/50">
-                        {record.labResults && record.labResults.map((lab, index) => (
-                          <tr key={index}>
-                            <td className="py-2 font-medium">{lab.test}</td>
-                            <td className="py-2 font-mono font-bold text-[#1B3A6B]">{lab.result}</td>
-                            <td className="py-2 text-[#6B7A99] font-mono text-[10px] leading-tight">{lab.range}</td>
-                            <td className="py-2 text-green-600 font-bold">NORMAL</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {selectedDoc.name === "ECG Report" && (
-                  <div className="space-y-3">
-                    <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">12-Lead Electrocardiogram Summary</h5>
-                    <div className="bg-red-50/60 p-3 sm:p-4 rounded-xl border border-red-100 flex flex-col items-center justify-center space-y-3">
-                      <span className="text-[9px] sm:text-[10px] text-red-800 font-extrabold uppercase bg-red-100 border border-red-200 px-2.5 py-0.5 rounded-full">Normal Sinus Rhythm</span>
-                      
-                      {/* Animated/Styled ECG wave line */}
-                      <svg width="100%" height="60" viewBox="0 0 400 80" className="stroke-[#E53935] stroke-2 fill-none stroke-round">
-                        <path d="M0,40 H40 L50,30 L60,50 L70,40 H100 L110,20 L125,70 L135,10 L145,45 L155,40 H200 L210,30 L220,50 L230,40 H260 L270,20 L285,70 L295,10 L305,45 L315,40 H360 L370,30 L380,50 L390,40 H400" />
-                      </svg>
-                      
-                      <div className="grid grid-cols-3 gap-3 text-center w-full pt-1 text-[9px] sm:text-[10px]">
-                        <div>
-                          <strong className="block text-slate-700">Heart Rate</strong>
-                          <span className="font-bold text-[#1B3A6B]">72 bpm</span>
-                        </div>
-                        <div>
-                          <strong className="block text-slate-700">PR Interval</strong>
-                          <span className="font-bold text-[#1B3A6B]">142 ms</span>
-                        </div>
-                        <div>
-                          <strong className="block text-slate-700">QRS Duration</strong>
-                          <span className="font-bold text-[#1B3A6B]">88 ms</span>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {selectedDoc.name === "X-Ray Chest" && (
-                  <div className="space-y-3">
-                    <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">Diagnostic Chest Radiograph (X-Ray)</h5>
-                    <div className="bg-slate-900 rounded-xl p-4 flex flex-col items-center justify-center space-y-3 min-h-[160px] text-white">
-                      
-                      <svg width="100" height="100" viewBox="0 0 100 100" className="opacity-80 fill-none stroke-white stroke-[1.5]">
-                        <line x1="50" y1="10" x2="50" y2="90" strokeDasharray="3,3" />
-                        <path d="M48,25 C30,25 25,40 25,55 C25,70 35,80 48,80" />
-                        <path d="M48,35 C33,35 30,48 30,60 C30,72 38,75 48,75" />
-                        <path d="M48,45 C35,45 33,55 33,65 C33,70 40,70 48,70" />
-                        <path d="M52,25 C70,25 75,40 75,55 C75,70 65,80 52,80" />
-                        <path d="M52,35 C67,35 70,48 70,60 C70,72 62,75 52,75" />
-                        <path d="M52,45 C65,45 67,55 67,65 C67,70 60,70 52,70" />
-                        <path d="M50,15 C40,15 25,18 20,22" />
-                        <path d="M50,15 C60,15 75,18 80,22" />
-                      </svg>
-                      
-                      <div className="text-center">
-                        <span className="text-[9px] text-teal-400 font-bold uppercase">DIAGNOSTIC FINDING</span>
-                        <p className="text-[10px] text-slate-300 font-medium leading-relaxed max-w-xs mt-1">
-                          Lungs are clear bilaterally. No consolidations, effusions, or cardiomegaly. Lungs fields are normal.
-                        </p>
+                    {selectedDoc.name === "X-Ray Chest" && (
+                      <div className="space-y-3">
+                        <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">Diagnostic Chest Radiograph (X-Ray)</h5>
+                        <div className="bg-slate-900 rounded-xl p-4 flex flex-col items-center justify-center space-y-3 min-h-[160px] text-white">
+                          
+                          <svg width="100" height="100" viewBox="0 0 100 100" className="opacity-80 fill-none stroke-white stroke-[1.5]">
+                            <line x1="50" y1="10" x2="50" y2="90" strokeDasharray="3,3" />
+                            <path d="M48,25 C30,25 25,40 25,55 C25,70 35,80 48,80" />
+                            <path d="M48,35 C33,35 30,48 30,60 C30,72 38,75 48,75" />
+                            <path d="M48,45 C35,45 33,55 33,65 C33,70 40,70 48,70" />
+                            <path d="M52,25 C70,25 75,40 75,55 C75,70 65,80 52,80" />
+                            <path d="M52,35 C67,35 70,48 70,60 C70,72 62,75 52,75" />
+                            <path d="M52,45 C65,45 67,55 67,65 C67,70 60,70 52,70" />
+                            <path d="M50,15 C40,15 25,18 20,22" />
+                            <path d="M50,15 C60,15 75,18 80,22" />
+                          </svg>
+                          
+                          <div className="text-center">
+                            <span className="text-[9px] text-teal-400 font-bold uppercase">DIAGNOSTIC FINDING</span>
+                            <p className="text-[10px] text-slate-300 font-medium leading-relaxed max-w-xs mt-1">
+                              Lungs are clear bilaterally. No consolidations, effusions, or cardiomegaly. Lungs fields are normal.
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    )}
+                  </>
                 )}
 
                 {/* Certified Digital Doctor stamp */}
