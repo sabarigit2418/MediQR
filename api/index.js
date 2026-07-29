@@ -171,8 +171,8 @@ const savePatientRecord = async (userId, email, record) => {
     if (Array.isArray(record.conditions)) {
       for (const item of record.conditions) {
         await pool.query(
-          'INSERT INTO conditions (user_id, email, name, severity, notes) VALUES ($1, $2, $3, $4, $5)',
-          [userId, email, item.name, item.severity || '', item.notes || '']
+          'INSERT INTO conditions (user_id, email, user_name, name, severity, notes) VALUES ($1, $2, $3, $4, $5, $6)',
+          [userId, email, record.name || '', item.name, item.severity || '', item.notes || '']
         );
       }
     }
@@ -181,8 +181,8 @@ const savePatientRecord = async (userId, email, record) => {
     if (Array.isArray(record.allergies)) {
       for (const item of record.allergies) {
         await pool.query(
-          'INSERT INTO allergies (user_id, email, name, severity, notes) VALUES ($1, $2, $3, $4, $5)',
-          [userId, email, item.name, item.severity || '', item.notes || '']
+          'INSERT INTO allergies (user_id, email, user_name, name, severity, notes) VALUES ($1, $2, $3, $4, $5, $6)',
+          [userId, email, record.name || '', item.name, item.severity || '', item.notes || '']
         );
       }
     }
@@ -191,8 +191,8 @@ const savePatientRecord = async (userId, email, record) => {
     if (Array.isArray(record.medications)) {
       for (const item of record.medications) {
         await pool.query(
-          'INSERT INTO medications (user_id, email, name, dosage, frequency, purpose) VALUES ($1, $2, $3, $4, $5, $6)',
-          [userId, email, item.name, item.dosage || '', item.frequency || '', item.purpose || '']
+          'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [userId, email, record.name || '', item.name, item.dosage || '', item.frequency || '', item.purpose || '']
         );
       }
     }
@@ -201,8 +201,8 @@ const savePatientRecord = async (userId, email, record) => {
     if (Array.isArray(record.contacts)) {
       for (const item of record.contacts) {
         await pool.query(
-          'INSERT INTO contacts (user_id, email, name, relationship, phone) VALUES ($1, $2, $3, $4, $5)',
-          [userId, email, item.name, item.relationship || '', item.phone || '']
+          'INSERT INTO contacts (user_id, email, user_name, name, relationship, phone) VALUES ($1, $2, $3, $4, $5, $6)',
+          [userId, email, record.name || '', item.name, item.relationship || '', item.phone || '']
         );
       }
     }
@@ -211,8 +211,8 @@ const savePatientRecord = async (userId, email, record) => {
     if (Array.isArray(record.documents)) {
       for (const item of record.documents) {
         await pool.query(
-          'INSERT INTO documents (id, user_id, email, name, date, size, category, url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [item.id, userId, email, item.name, item.date || '', item.size || '', item.category || '', item.url || '']
+          'INSERT INTO documents (id, user_id, email, user_name, name, date, size, category, url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          [item.id, userId, email, record.name || '', item.name, item.date || '', item.size || '', item.category || '', item.url || '']
         );
       }
     }

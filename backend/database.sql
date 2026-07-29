@@ -46,6 +46,7 @@ CREATE TABLE conditions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   email VARCHAR(255) DEFAULT '',
+  user_name VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   severity VARCHAR(100) DEFAULT '',
   notes TEXT DEFAULT ''
@@ -56,6 +57,7 @@ CREATE TABLE allergies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   email VARCHAR(255) DEFAULT '',
+  user_name VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   severity VARCHAR(100) DEFAULT '',
   notes TEXT DEFAULT ''
@@ -66,6 +68,7 @@ CREATE TABLE medications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   email VARCHAR(255) DEFAULT '',
+  user_name VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   dosage VARCHAR(255) DEFAULT '',
   frequency VARCHAR(255) DEFAULT '',
@@ -77,6 +80,7 @@ CREATE TABLE contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   email VARCHAR(255) DEFAULT '',
+  user_name VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   relationship VARCHAR(255) DEFAULT '',
   phone VARCHAR(100) DEFAULT ''
@@ -87,6 +91,7 @@ CREATE TABLE documents (
   id VARCHAR(255) PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   email VARCHAR(255) DEFAULT '',
+  user_name VARCHAR(255) DEFAULT '',
   name VARCHAR(255) NOT NULL,
   date VARCHAR(100) DEFAULT '',
   size VARCHAR(100) DEFAULT '',
