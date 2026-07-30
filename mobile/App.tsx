@@ -29,7 +29,7 @@ export default function App() {
       <View style={styles.webViewWrapper}>
         <WebView
           ref={webViewRef}
-          source={{ uri: 'https://mediqrfixed.vercel.app' }}
+          source={{ uri: 'https://mediqrfixed.vercel.app/?app=true' }}
           onNavigationStateChange={(navState) => {
             setCanGoBack(navState.canGoBack);
           }}
