@@ -60,19 +60,19 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Daily Alarms Shortcut Card */}
+      {/* Daily Tablet Checker Shortcut Card */}
       {medications.some(m => m.reminderMorning || m.reminderAfternoon || m.reminderNight) && (
         <div 
           onClick={() => navigate('/profile/reminders')}
-          className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/35 shadow-sm rounded-[24px] p-5 flex items-center justify-between cursor-pointer hover:shadow-md active:scale-[0.99] transition-all"
+          className="bg-gradient-to-r from-primary/10 to-indigo-500/10 border border-primary/35 shadow-sm rounded-[24px] p-5 flex items-center justify-between cursor-pointer hover:shadow-md active:scale-[0.99] transition-all"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-700">
-              <span className="material-symbols-outlined text-[22px]">alarm</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined text-[22px]">fact_check</span>
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-on-surface">Medication Reminders Schedule</h3>
-              <p className="text-xs text-on-surface-variant">Check off your morning, afternoon, or night doses.</p>
+              <h3 className="font-semibold text-sm text-on-surface">Daily Tablet Checker</h3>
+              <p className="text-xs text-on-surface-variant">Check off your morning, afternoon, or night tablet doses.</p>
             </div>
           </div>
           <span className="material-symbols-outlined text-outline text-xl">chevron_right</span>

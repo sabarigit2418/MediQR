@@ -14,7 +14,7 @@ export const Navbar: React.FC = () => {
     if (pathname.startsWith('/profile/setup')) return 'Profile Setup';
     if (pathname.startsWith('/profile/conditions')) return 'Conditions & Allergies';
     if (pathname.startsWith('/profile/medications')) return 'Current Medications';
-    if (pathname.startsWith('/profile/reminders')) return 'Medication Alarms';
+    if (pathname.startsWith('/profile/reminders')) return 'Tablet Checker';
     if (pathname.startsWith('/profile/emergency-contacts')) return 'Emergency Contacts';
     if (pathname.startsWith('/documents')) return 'Document Vault';
     if (pathname.startsWith('/qr/my-code')) return 'My Medical QR';

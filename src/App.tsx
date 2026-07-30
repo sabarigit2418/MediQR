@@ -20,13 +20,11 @@ import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Reminders } from './pages/Reminders';
-import { ReminderService } from './components/ReminderService';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <ReminderService />
         <Routes>
           {/* Public Full Screen Routes */}
           <Route path="/splash" element={<Splash />} />

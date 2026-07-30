@@ -166,11 +166,11 @@ export const Medications: React.FC = () => {
           <Button
             variant="secondary"
             onClick={() => navigate('/profile/reminders')}
-            icon="alarm"
+            icon="fact_check"
             iconPosition="left"
             className="flex-grow sm:flex-grow-0"
           >
-            Reminders Schedule
+            Tablet Checker
           </Button>
           <Button
             variant="primary"
@@ -410,7 +410,7 @@ export const Medications: React.FC = () => {
               </div>
 
               <div className="space-y-2.5">
-                <label className="font-label-caps text-[10px] text-on-surface-variant pl-1">Daily Reminders (Schedule)</label>
+                <label className="font-label-caps text-[10px] text-on-surface-variant pl-1">Daily Intake Schedule</label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <button
