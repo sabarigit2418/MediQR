@@ -102,15 +102,26 @@ export const Medications: React.FC = () => {
           <span className="font-label-caps text-xs text-on-surface-variant/70 tracking-widest block mb-1">Health Records</span>
           <h1 className="font-headline-lg-mobile md:font-headline-lg text-on-surface font-bold">Current Medications</h1>
         </div>
-        <Button
-          variant="primary"
-          onClick={handleOpenAdd}
-          icon="add"
-          iconPosition="left"
-          className="w-full sm:w-auto"
-        >
-          Add Medication
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="secondary"
+            onClick={() => navigate('/profile/reminders')}
+            icon="alarm"
+            iconPosition="left"
+            className="flex-grow sm:flex-grow-0"
+          >
+            Alarms Schedule
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleOpenAdd}
+            icon="add"
+            iconPosition="left"
+            className="flex-grow sm:flex-grow-0"
+          >
+            Add Medication
+          </Button>
+        </div>
       </div>
 
       {/* Bento Medications Grid */}
