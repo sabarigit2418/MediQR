@@ -54,6 +54,7 @@ export const Sidebar: React.FC = () => {
           <SidebarItem to="/profile/setup" icon="person" label="Profile Setup" />
           <SidebarItem to="/profile/conditions" icon="healing" label="Conditions & Allergies" />
           <SidebarItem to="/profile/medications" icon="medication" label="Current Medications" />
+          <SidebarItem to="/profile/reminders" icon="alarm" label="Medication Alarms" />
           <SidebarItem to="/profile/emergency-contacts" icon="call" label="Emergency Contacts" />
           <SidebarItem to="/settings" icon="settings" label="Settings & Privacy" />
         </nav>

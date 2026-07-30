@@ -19,6 +19,7 @@ import { Notifications } from './pages/Notifications';
 import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { Reminders } from './pages/Reminders';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="/profile/setup" element={<ProfileSetup />} />
             <Route path="/profile/conditions" element={<Conditions />} />
             <Route path="/profile/medications" element={<Medications />} />
+            <Route path="/profile/reminders" element={<Reminders />} />
             <Route path="/profile/emergency-contacts" element={<EmergencyContacts />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/qr/my-code" element={<MyQR />} />
