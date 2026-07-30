@@ -164,7 +164,7 @@ export const Reports: React.FC = () => {
       if (record.documents && record.documents.length > 0) {
         record.documents.forEach((item) => {
           const urlStr = item.url || '';
-          const absoluteUrl = urlStr.startsWith('http') 
+          const absoluteUrl = (urlStr.startsWith('http') || urlStr.startsWith('data:'))
             ? urlStr 
             : `${window.location.origin}${urlStr}`;
             

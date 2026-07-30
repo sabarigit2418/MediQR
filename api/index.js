@@ -134,7 +134,7 @@ const getPatientRecord = async (userId) => {
 
   const conditionsResult = await pool.query('SELECT name, severity, notes FROM conditions WHERE user_id = $1', [userId]);
   const allergiesResult = await pool.query('SELECT name, severity, notes FROM allergies WHERE user_id = $1', [userId]);
-  const medicationsResult = await pool.query('SELECT name, dosage, frequency, purpose FROM medications WHERE user_id = $1', [userId]);
+  const medicationsResult = await pool.query('SELECT name, dosage, frequency, purpose, date FROM medications WHERE user_id = $1', [userId]);
   const contactsResult = await pool.query('SELECT name, relationship, phone FROM contacts WHERE user_id = $1', [userId]);
   const documentsResult = await pool.query('SELECT id, name, date, size, category, url FROM documents WHERE user_id = $1', [userId]);
 
@@ -155,6 +155,19 @@ const getPatientRecord = async (userId) => {
     contacts: contactsResult.rows || [],
     documents: documentsResult.rows || []
   };
+};
+
+const logActivity = async (userId, type, title, description, metadata = {}) => {
+  if (!pool) return;
+  try {
+    await pool.query(
+      'INSERT INTO activity_logs (user_id, type, title, description, metadata) VALUES ($1, $2, $3, $4, $5)',
+      [userId, type, title, description, JSON.stringify(metadata)]
+    );
+    console.log(`📝 Logged activity: [${type}] ${title} for user: ${userId}`);
+  } catch (err) {
+    console.error('Failed to log activity:', err.message);
+  }
 };
 
 const savePatientRecord = async (userId, email, record) => {
@@ -206,8 +219,8 @@ const savePatientRecord = async (userId, email, record) => {
     if (Array.isArray(record.medications)) {
       for (const item of record.medications) {
         await pool.query(
-          'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [userId, email, record.name || '', item.name, item.dosage || '', item.frequency || '', item.purpose || '']
+          'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose, date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [userId, email, record.name || '', item.name, item.dosage || '', item.frequency || '', item.purpose || '', item.date || '']
         );
       }
     }
@@ -266,6 +279,9 @@ app.post('/api/auth/signup', async (req, res) => {
     const userId = result.rows[0].id;
     const defaultQrId = `mqr-${userId.slice(0, 8)}`;
     await pool.query('INSERT INTO profiles (user_id, email, qr_id) VALUES ($1, $2, $3)', [userId, email, defaultQrId]);
+
+    // Log the signup activity
+    await logActivity(userId, 'update', 'Account Created', 'Registered a new secure health account.');
 
     // Send OTP to email
     await sendOtpEmail(email, otp);
@@ -551,13 +567,60 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
     }
 
     if (patientRecord) {
+      let logType = 'update';
+      let logTitle = 'Profile Updated';
+      let logDesc = 'Saved medical emergency profile details.';
+
+      try {
+        const oldRecord = await getPatientRecord(req.user.id);
+        if (oldRecord) {
+          const oldDocCount = oldRecord.documents?.length || 0;
+          const newDocCount = patientRecord.documents?.length || 0;
+          const oldMedCount = oldRecord.medications?.length || 0;
+          const newMedCount = patientRecord.medications?.length || 0;
+          const oldAllergyCount = oldRecord.allergies?.length || 0;
+          const newAllergyCount = patientRecord.allergies?.length || 0;
+
+          if (newDocCount > oldDocCount) {
+            logType = 'document';
+            logTitle = 'Document Uploaded';
+            logDesc = `New document "${patientRecord.documents[newDocCount - 1]?.name || 'Medical file'}" uploaded to secure vault.`;
+          } else if (newMedCount !== oldMedCount) {
+            logType = 'update';
+            logTitle = 'Medications Updated';
+            logDesc = 'Current medication prescriptions updated.';
+          } else if (newAllergyCount !== oldAllergyCount) {
+            logType = 'update';
+            logTitle = 'Allergies Updated';
+            logDesc = 'Active allergy alert conditions updated.';
+          }
+        }
+      } catch (compareErr) {
+        console.error('Failed to compare records for logging:', compareErr.message);
+      }
+
       await savePatientRecord(req.user.id, req.user.email, patientRecord);
+      await logActivity(req.user.id, logType, logTitle, logDesc);
     }
 
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('Profile update error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/activities', authenticateToken, async (req, res) => {
+  if (!pool) return res.status(500).json({ error: 'Database connection not initialized.' });
+  try {
+    const result = await pool.query(
+      'SELECT type, title, description, created_at FROM activity_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10',
+      [req.user.id]
+    );
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Fetch activities error:', error);
+    res.status(500).json({ error: 'Failed to fetch activities' });
   }
 });
 
@@ -592,23 +655,8 @@ app.post('/api/documents/upload', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Strip header prefix if present (e.g., "data:application/pdf;base64,")
-    const base64Data = fileData.replace(/^data:.*?;base64,/, "");
-    const buffer = Buffer.from(base64Data, 'base64');
-    
-    // Create unique safe name
-    const fileExt = path.extname(fileName) || '.pdf';
-    const baseName = path.basename(fileName, fileExt).replace(/[^a-zA-Z0-9]/g, '_');
-    const uniqueFileName = `${baseName}_${Date.now()}${fileExt}`;
-    const filePath = path.join(uploadsDir, uniqueFileName);
-    
-    // Save to disk
-    fs.writeFileSync(filePath, buffer);
-    console.log(`💾 Saved uploaded document: ${filePath}`);
-
-    // Return relative URL
-    const fileUrl = `/uploads/${uniqueFileName}`;
-    res.status(200).json({ fileUrl });
+    // Return base64 URL directly to store persistently in Supabase
+    res.status(200).json({ fileUrl: fileData });
   } catch (error) {
     console.error('File upload error:', error);
     res.status(500).json({ error: 'Failed to upload document to server' });

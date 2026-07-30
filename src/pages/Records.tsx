@@ -1,30 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { Input } from '../components/Input';
 
-interface RecordItem {
-  id: number;
-  title: string;
-  time: string;
-  desc: string;
+interface ActivityItem {
   type: 'document' | 'scan' | 'update';
-  icon: string;
+  title: string;
+  description: string;
+  created_at: string;
 }
-
-const MOCK_RECORDS: RecordItem[] = [
-  { id: 1, title: "Blood Test Results Uploaded", time: "Today, 10:42 AM", desc: "PDF document added to your core health file.", type: "document", icon: "description" },
-  { id: 2, title: "Emergency Profile Scanned", time: "Yesterday, 3:15 PM", desc: "Access requested by Dr. Sarah Jenkins at City General.", type: "scan", icon: "qr_code_scanner" },
-  { id: 3, title: "Allergy Information Updated", time: "Oct 24, 2026", desc: "Added 'Penicillin' to active allergies list.", type: "update", icon: "manage_accounts" },
-  { id: 4, title: "Annual Physical Summary", time: "Oct 12, 2026", desc: "Dr. Emily Chen uploaded your visit summary notes.", type: "document", icon: "description" },
-];
 
 export const Records: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'document' | 'scan' | 'update'>('all');
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredRecords = MOCK_RECORDS.filter((item) => {
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
+        const response = await fetch('/api/activities', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setActivities(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch timeline activities:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActivities();
+  }, []);
+
+  const filteredRecords = activities.filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.desc.toLowerCase().includes(searchQuery.toLowerCase());
+                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filter === 'all' ? true : item.type === filter;
     return matchesSearch && matchesFilter;
   });
@@ -63,6 +79,27 @@ export const Records: React.FC = () => {
       case 'update': return 'bg-slate-500/10 text-slate-800';
       default: return 'bg-surface-variant text-on-surface-variant';
     }
+  };
+
+  const getIconName = (type: string) => {
+    switch (type) {
+      case 'document': return 'description';
+      case 'scan': return 'qr_code_scanner';
+      case 'update': return 'manage_accounts';
+      default: return 'info';
+    }
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleString('en-US', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   return (
@@ -114,26 +151,30 @@ export const Records: React.FC = () => {
         {/* Vertical background line */}
         <div className="absolute left-6 md:left-8 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/20 via-primary/5 to-transparent z-0 transform -translate-x-1/2" />
 
-        {filteredRecords.length === 0 ? (
-          <div className="py-8 text-center text-on-surface-variant font-medium">
+        {loading ? (
+          <div className="py-8 text-center text-outline-variant font-medium text-sm">
+            Loading timeline history...
+          </div>
+        ) : filteredRecords.length === 0 ? (
+          <div className="py-8 text-center text-on-surface-variant font-medium text-sm">
             No records match your filters.
           </div>
         ) : (
           <div className="space-y-6">
-            {filteredRecords.map((item) => (
-              <div key={item.id} className="relative flex gap-4 group z-10">
+            {filteredRecords.map((item, idx) => (
+              <div key={idx} className="relative flex gap-4 group z-10">
                 {/* Bullet node */}
                 <div className={`w-10 h-10 rounded-full bg-white border-2 ${getDotBorderColor(item.type)} ${getDotTextColor(item.type)} flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-200`}>
-                  <span className="material-symbols-outlined text-[18px] filled-icon">{item.icon}</span>
+                  <span className="material-symbols-outlined text-[18px] filled-icon">{getIconName(item.type)}</span>
                 </div>
 
                 {/* Glass Card content */}
                 <GlassCard className="flex-grow p-5 hover:bg-white/95 border border-white/60 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-2">
                     <h3 className="font-semibold text-sm text-on-surface">{item.title}</h3>
-                    <span className="text-xs text-on-surface-variant/70">{item.time}</span>
+                    <span className="text-xs text-on-surface-variant/70 font-mono">{formatDateTime(item.created_at)}</span>
                   </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed mb-3">{item.desc}</p>
+                  <p className="text-xs text-on-surface-variant leading-relaxed mb-3">{item.description}</p>
                   <span className={`inline-block px-2.5 py-1 rounded font-semibold text-[9px] uppercase tracking-wide ${getTypeStyle(item.type)}`}>
                     {getTypeLabel(item.type)}
                   </span>

@@ -9,6 +9,7 @@ export interface Medication {
   dosage: string;
   frequency: string;
   purpose?: string;
+  date?: string;
 }
 
 export interface EmergencyContact {

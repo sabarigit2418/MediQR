@@ -1,10 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { GlassCard } from '../components/GlassCard';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
+        const response = await fetch('/api/activities', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setActivities(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch activities:', err);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+    fetchActivities();
+  }, []);
 
   if (!user) return null;
 
@@ -15,6 +42,21 @@ export const Dashboard: React.FC = () => {
   const allergySummary = allergies.length > 0 
     ? (allergies.length === 1 ? allergies[0].name : `${allergies.length} Items`) 
     : 'None';
+
+  const getRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  };
 
   return (
     <div className="space-y-6">
@@ -85,29 +127,46 @@ export const Dashboard: React.FC = () => {
 
       {/* Recent Activity List */}
       <section className="space-y-4">
-        <h2 className="font-title-md text-title-md text-on-surface font-semibold">Recent Activity</h2>
+        <div className="flex justify-between items-center px-1">
+          <h2 className="font-title-md text-title-md text-on-surface font-semibold">Recent Activity</h2>
+          <button 
+            onClick={() => navigate('/records')}
+            className="text-xs text-primary font-semibold hover:underline cursor-pointer bg-transparent border-0"
+          >
+            View Timeline
+          </button>
+        </div>
         
-        <div className="glass-panel rounded-[24px] p-5 flex items-center gap-4 hover:bg-white/90 cursor-pointer active:scale-[0.99] transition-all duration-200 border border-white/60 shadow-sm">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <span className="material-symbols-outlined">qr_code_scanner</span>
+        {loadingActivities ? (
+          <div className="text-center py-6 text-xs text-outline-variant">Loading timeline logs...</div>
+        ) : activities.length === 0 ? (
+          <GlassCard className="text-center py-10">
+            <span className="material-symbols-outlined text-outline-variant text-4xl mb-2">history</span>
+            <p className="text-on-surface-variant text-sm font-semibold">No recent activities logged.</p>
+            <p className="text-outline text-xs mt-1">Your timeline updates dynamically on profile edits, QR scans, and document uploads.</p>
+          </GlassCard>
+        ) : (
+          <div className="space-y-3">
+            {activities.slice(0, 5).map((act, index) => (
+              <div 
+                key={index} 
+                onClick={() => navigate('/records')}
+                className="glass-panel rounded-[24px] p-5 flex items-center gap-4 hover:bg-white/90 cursor-pointer active:scale-[0.99] transition-all duration-200 border border-white/60 shadow-sm"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined">
+                    {act.type === 'scan' ? 'qr_code_scanner' : act.type === 'document' ? 'description' : 'manage_accounts'}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-body-lg text-on-surface font-semibold text-sm">{act.title}</h3>
+                  <p className="font-body-sm text-on-surface-variant text-xs">{act.description}</p>
+                </div>
+                <span className="text-xs text-on-surface-variant/70 shrink-0">{getRelativeTime(act.created_at)}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex-1">
-            <h3 className="font-body-lg text-on-surface font-semibold text-sm">Profile Scanned</h3>
-            <p className="font-body-sm text-on-surface-variant text-xs">City Hospital ER</p>
-          </div>
-          <span className="text-xs text-on-surface-variant/70">2h ago</span>
-        </div>
-
-        <div className="glass-panel rounded-[24px] p-5 flex items-center gap-4 hover:bg-white/90 cursor-pointer active:scale-[0.99] transition-all duration-200 border border-white/60 shadow-sm">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <span className="material-symbols-outlined">description</span>
-          </div>
-          <div className="flex-1">
-            <h3 className="font-body-lg text-on-surface font-semibold text-sm">Document Uploaded</h3>
-            <p className="font-body-sm text-on-surface-variant text-xs">Lab Results - CBC</p>
-          </div>
-          <span className="text-xs text-on-surface-variant/70">Yesterday</span>
-        </div>
+        )}
       </section>
     </div>
   );

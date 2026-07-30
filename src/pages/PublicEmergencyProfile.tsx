@@ -228,6 +228,46 @@ export const PublicEmergencyProfile: React.FC = () => {
 
   // Document modal & profile locking states
   const [selectedDoc, setSelectedDoc] = useState<DhoniDocument | null>(null);
+
+  const handleOpenDoc = () => {
+    if (!selectedDoc || !selectedDoc.url) return;
+    if (selectedDoc.url.startsWith('data:')) {
+      try {
+        const base64Parts = selectedDoc.url.split(',');
+        const contentType = base64Parts[0].split(':')[1].split(';')[0];
+        const byteCharacters = atob(base64Parts[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        console.error('Failed to open base64 document:', e);
+        window.open(selectedDoc.url, '_blank');
+      }
+    } else {
+      window.open(selectedDoc.url, '_blank');
+    }
+  };
+
+  const getDocStyle = (category: string) => {
+    switch (category) {
+      case 'Prescription':
+        return { icon: 'medication', iconColor: 'text-emerald-500', badgeStyle: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+      case 'Lab Report':
+        return { icon: 'science', iconColor: 'text-amber-500', badgeStyle: 'bg-amber-50 text-amber-600 border-amber-100' };
+      case 'Insurance':
+        return { icon: 'health_and_safety', iconColor: 'text-blue-500', badgeStyle: 'bg-blue-50 text-blue-600 border-blue-100' };
+      case 'ID Proof':
+        return { icon: 'badge', iconColor: 'text-indigo-500', badgeStyle: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
+      default:
+        return { icon: 'description', iconColor: 'text-rose-500', badgeStyle: 'bg-rose-50 text-rose-600 border-rose-100' };
+    }
+  };
+
   const [showQrModal, setShowQrModal] = useState(false);
   const [isProfileLocked, setIsProfileLocked] = useState(() => {
     const activeQrId = qrId || 'mq-784512';
@@ -1183,9 +1223,9 @@ export const PublicEmergencyProfile: React.FC = () => {
                     </div>
                     <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
                       {record.allergies && record.allergies.length > 0 && (
-                        <div className="col-span-2 bg-red-50 p-2.5 rounded-lg border border-red-100/50">
-                          <span className="data-label text-[#E53935] block">Allergies</span>
-                          <span className="data-value text-xs text-[#E53935] font-bold block pt-0.5">
+                        <div className="col-span-2 bg-rose-50/40 p-2.5 rounded-md border border-rose-100/40">
+                          <span className="data-label text-[#D32F2F] block">Allergies</span>
+                          <span className="data-value text-xs text-[#C62828] font-bold block pt-0.5">
                             {record.allergies.map(a => `${a.name} (${a.severity})`).join(', ')}
                           </span>
                         </div>
@@ -1440,22 +1480,25 @@ export const PublicEmergencyProfile: React.FC = () => {
                 {/* Document tiles */}
                 {hasDocuments ? (
                   <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {record.documents.map((doc) => (
-                      <div 
-                        key={doc.id}
-                        onClick={() => setSelectedDoc(doc)}
-                        className="border border-[#E0E6EF] rounded-lg p-2.5 text-center bg-[#F8FAFD] hover:bg-white hover:border-[#2ABFBF] hover:shadow-md active:scale-95 transition-all cursor-pointer flex flex-col justify-between items-center h-[110px] sm:h-[120px]"
-                      >
-                        <div className="w-full">
-                          <h4 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-[#1B3A6B] truncate w-full">{doc.name}</h4>
-                          <span className="text-[8px] sm:text-[9px] text-[#6B7A99] block mt-0.5">{doc.date}</span>
+                    {record.documents.map((doc) => {
+                      const docStyle = getDocStyle(doc.category || '');
+                      return (
+                        <div 
+                          key={doc.id}
+                          onClick={() => setSelectedDoc(doc)}
+                          className="border border-[#E0E6EF] rounded-lg p-2.5 text-center bg-[#F8FAFD] hover:bg-white hover:border-[#2ABFBF] hover:shadow-md active:scale-95 transition-all cursor-pointer flex flex-col justify-between items-center h-[115px] sm:h-[125px]"
+                        >
+                          <div className="w-full">
+                            <h4 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-[#1B3A6B] truncate w-full" title={doc.name}>{doc.name}</h4>
+                            <span className="text-[8px] sm:text-[9px] text-[#6B7A99] block mt-0.5">{doc.date}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className={`material-symbols-outlined ${docStyle.iconColor} text-2xl sm:text-3xl font-light`}>{docStyle.icon}</span>
+                            <span className={`text-[8px] ${docStyle.badgeStyle} px-1.5 py-0.5 rounded border font-bold uppercase tracking-wider`}>{doc.category || 'PDF'}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="material-symbols-outlined text-[#E53935] text-2xl sm:text-3xl font-light">picture_as_pdf</span>
-                          <span className="text-[8px] bg-red-50 text-[#E53935] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{doc.type || 'PDF'}</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="lg:col-span-8 flex flex-col justify-center items-center p-6 border border-dashed border-[#E0E6EF] rounded-lg bg-slate-50/50">
@@ -1544,7 +1587,7 @@ export const PublicEmergencyProfile: React.FC = () => {
             <div className="text-right text-[#6B7A99] text-center sm:text-right">
               <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">Report Generated On</p>
               <p className="text-xs font-semibold text-[#1A2340] mt-0.5">
-                {record.lastVisit?.date || '12 May 2024'} | 10:30 AM
+                {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })} | {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
               </p>
             </div>
 
@@ -1665,33 +1708,66 @@ export const PublicEmergencyProfile: React.FC = () => {
 
                 {/* Document Conditional Content */}
                 {selectedDoc.url ? (
-                  <div className="space-y-3">
-                    <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">
-                      File Attachment: {selectedDoc.name}
-                    </h5>
-                    
-                    <div className="flex justify-end mb-2">
-                      <a 
-                        href={selectedDoc.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold bg-[#1B3A6B] text-white rounded-lg shadow hover:bg-slate-800 transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                        Open in New Tab
-                      </a>
-                    </div>
+                  (() => {
+                    const docUrl = selectedDoc.url;
+                    return (
+                      <div className="space-y-3">
+                        <h5 className="font-bold text-[#1B3A6B] text-[10px] sm:text-[11px] uppercase tracking-wider border-b border-[#E0E6EF] pb-1">
+                          File Attachment: {selectedDoc.name}
+                        </h5>
+                        
+                        <div className="flex justify-end gap-2 mb-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = docUrl;
+                              const isPdf = docUrl.includes('application/pdf');
+                              const ext = isPdf ? '.pdf' : '.jpg';
+                              link.download = selectedDoc.name.toLowerCase().endsWith(ext) 
+                                ? selectedDoc.name 
+                                : `${selectedDoc.name}${ext}`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold bg-[#2ABFBF] text-white rounded-lg shadow hover:bg-teal-600 transition-all cursor-pointer border-0"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">download</span>
+                            Download Document
+                          </button>
+                          <button 
+                            onClick={handleOpenDoc}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold bg-[#1B3A6B] text-white rounded-lg shadow hover:bg-slate-800 transition-all cursor-pointer border-0"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                            Open / Preview
+                          </button>
+                        </div>
 
-                    {(selectedDoc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) || selectedDoc.url.startsWith('data:image/')) ? (
-                      <div className="flex justify-center p-2 border border-slate-200 rounded-lg overflow-hidden bg-slate-900 max-h-[350px]">
-                        <img src={selectedDoc.url} alt={selectedDoc.name} className="max-h-[330px] object-contain rounded" />
+                        {(docUrl.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) || docUrl.startsWith('data:image/')) ? (
+                          <div className="flex justify-center p-2 border border-slate-200 rounded-lg overflow-hidden bg-slate-900 max-h-[350px]">
+                            <img src={docUrl} alt={selectedDoc.name} className="max-h-[330px] object-contain rounded" />
+                          </div>
+                        ) : (
+                          <div className="border border-slate-200 rounded-lg overflow-hidden h-[350px] bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+                            <span className="material-symbols-outlined text-rose-500 text-5xl filled-icon animate-pulse mb-3">picture_as_pdf</span>
+                            <h6 className="font-semibold text-sm text-[#1B3A6B]">{selectedDoc.name}</h6>
+                            <p className="text-[11px] text-[#6B7A99] mt-1.5 max-w-xs">PDF Document is ready. Click below to view the document with zoom, scroll, and print controls.</p>
+                            
+                            <button
+                              type="button"
+                              onClick={handleOpenDoc}
+                              className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold bg-[#1B3A6B] text-white rounded-full shadow hover:shadow-md hover:bg-slate-800 transition-all cursor-pointer border-0"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">visibility</span>
+                              Open PDF Viewer
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="border border-slate-200 rounded-lg overflow-hidden h-[350px]">
-                        <iframe src={selectedDoc.url} className="w-full h-full border-0" title={selectedDoc.name} />
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()
                 ) : (
                   <>
                     {selectedDoc.name === "Prescription" && (
