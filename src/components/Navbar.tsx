@@ -9,8 +9,9 @@ export const Navbar: React.FC = () => {
   const [isMobileApp, setIsMobileApp] = React.useState(false);
 
   React.useEffect(() => {
+    const isApp = typeof window !== 'undefined' && (window as any).ReactNativeWebView !== undefined;
     const params = new URLSearchParams(window.location.search);
-    if (params.get('app') === 'true') {
+    if (isApp || params.get('app') === 'true') {
       localStorage.setItem('is_mobile_app', 'true');
       setIsMobileApp(true);
     } else {
