@@ -8,7 +8,7 @@ export const Notifications: React.FC = () => {
   const navigate = useNavigate();
 
   const [emailAlerts, setEmailAlerts] = useState(true);
-  const [pushAlerts, setPushAlerts] = useState(true);
+  
 
   if (!user) return null;
 
@@ -68,17 +68,31 @@ export const Notifications: React.FC = () => {
             <div className="w-8 h-8 rounded-full bg-secondary-container/50 flex items-center justify-center text-secondary">
               <span className="material-symbols-outlined text-[18px]">ad_units</span>
             </div>
-            <span className="font-semibold text-sm text-on-surface">Push Alerts</span>
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm text-on-surface">Push Alerts</span>
+              <span className="text-[10px] text-on-surface-variant">Enable local system notifications on this device</span>
+            </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={pushAlerts}
-              onChange={() => setPushAlerts(!pushAlerts)}
-              className="sr-only peer" 
-            />
-            <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner" />
-          </label>
+          {typeof Notification !== 'undefined' ? (
+            <button
+              onClick={() => {
+                if (Notification.permission !== 'granted') {
+                  Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                      alert('🔔 System Notifications Enabled Successfully!');
+                    }
+                  });
+                } else {
+                  alert('🔔 Notifications are already enabled on this device!');
+                }
+              }}
+              className="px-3.5 py-1.5 rounded-xl border border-primary/30 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer"
+            >
+              {Notification.permission === 'granted' ? 'Enabled' : 'Enable'}
+            </button>
+          ) : (
+            <span className="text-[10px] text-outline italic">Unavailable</span>
+          )}
         </div>
       </section>
 
