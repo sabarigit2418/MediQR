@@ -567,32 +567,59 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
     }
 
     if (patientRecord) {
+      let shouldLog = false;
       let logType = 'update';
-      let logTitle = 'Profile Updated';
-      let logDesc = 'Saved medical emergency profile details.';
+      let logTitle = '';
+      let logDesc = '';
+
+      const arraysAreEqual = (arr1, arr2, keys) => {
+        const a1 = Array.isArray(arr1) ? arr1 : [];
+        const a2 = Array.isArray(arr2) ? arr2 : [];
+        if (a1.length !== a2.length) return false;
+        for (let i = 0; i < a1.length; i++) {
+          for (const key of keys) {
+            if (a1[i]?.[key] !== a2[i]?.[key]) return false;
+          }
+        }
+        return true;
+      };
 
       try {
         const oldRecord = await getPatientRecord(req.user.id);
         if (oldRecord) {
           const oldDocCount = oldRecord.documents?.length || 0;
           const newDocCount = patientRecord.documents?.length || 0;
-          const oldMedCount = oldRecord.medications?.length || 0;
-          const newMedCount = patientRecord.medications?.length || 0;
-          const oldAllergyCount = oldRecord.allergies?.length || 0;
-          const newAllergyCount = patientRecord.allergies?.length || 0;
 
           if (newDocCount > oldDocCount) {
+            shouldLog = true;
             logType = 'document';
             logTitle = 'Document Uploaded';
             logDesc = `New document "${patientRecord.documents[newDocCount - 1]?.name || 'Medical file'}" uploaded to secure vault.`;
-          } else if (newMedCount !== oldMedCount) {
+          } else if (newDocCount < oldDocCount) {
+            shouldLog = true;
+            logType = 'document';
+            logTitle = 'Document Removed';
+            logDesc = 'A document was removed from the secure vault.';
+          } else if (!arraysAreEqual(oldRecord.medications, patientRecord.medications, ['name', 'dosage', 'frequency', 'purpose'])) {
+            shouldLog = true;
             logType = 'update';
             logTitle = 'Medications Updated';
             logDesc = 'Current medication prescriptions updated.';
-          } else if (newAllergyCount !== oldAllergyCount) {
+          } else if (!arraysAreEqual(oldRecord.allergies, patientRecord.allergies, ['name', 'severity', 'notes'])) {
+            shouldLog = true;
             logType = 'update';
             logTitle = 'Allergies Updated';
             logDesc = 'Active allergy alert conditions updated.';
+          } else if (!arraysAreEqual(oldRecord.conditions, patientRecord.conditions, ['name', 'severity', 'notes'])) {
+            shouldLog = true;
+            logType = 'update';
+            logTitle = 'Conditions Updated';
+            logDesc = 'Chronic medical conditions list updated.';
+          } else if (!arraysAreEqual(oldRecord.contacts, patientRecord.contacts, ['name', 'relationship', 'phone'])) {
+            shouldLog = true;
+            logType = 'update';
+            logTitle = 'Emergency Contacts Updated';
+            logDesc = 'Emergency ICE contacts updated.';
           }
         }
       } catch (compareErr) {
@@ -600,7 +627,9 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
       }
 
       await savePatientRecord(req.user.id, req.user.email, patientRecord);
-      await logActivity(req.user.id, logType, logTitle, logDesc);
+      if (shouldLog) {
+        await logActivity(req.user.id, logType, logTitle, logDesc);
+      }
     }
 
     res.status(200).json({ success: true });
