@@ -45,23 +45,7 @@ export const Navbar: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Scan Health QR (Mobile only shortcut) */}
-        <button
-          onClick={() => navigate('/qr/scan')}
-          className="md:hidden w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-all cursor-pointer hover:scale-105 active:scale-95"
-          title="Scan Health QR"
-        >
-          <span className="material-symbols-outlined text-[22px]">qr_code_scanner</span>
-        </button>
 
-        {/* Timeline History (Mobile only shortcut) */}
-        <button
-          onClick={() => navigate('/records')}
-          className="md:hidden w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-all cursor-pointer hover:scale-105 active:scale-95"
-          title="Records & History"
-        >
-          <span className="material-symbols-outlined text-[22px]">history</span>
-        </button>
 
         {/* Notifications */}
         <button

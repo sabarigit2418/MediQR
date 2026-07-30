@@ -247,6 +247,9 @@ export const MyQR: React.FC = () => {
             <Button variant="secondary" onClick={handleRegenerate} icon="sync" iconPosition="left" className="w-full py-3 justify-center">
               Regenerate QR Key
             </Button>
+            <Button variant="secondary" onClick={() => navigate('/qr/scan')} icon="qr_code_scanner" iconPosition="left" className="w-full py-3 justify-center bg-indigo-500/10 border-indigo-500/30 text-indigo-700 hover:bg-indigo-500/25">
+              Scan QR Code
+            </Button>
           </div>
         </div>
 
