@@ -72,7 +72,11 @@ CREATE TABLE medications (
   name VARCHAR(255) NOT NULL,
   dosage VARCHAR(255) DEFAULT '',
   frequency VARCHAR(255) DEFAULT '',
-  purpose TEXT DEFAULT ''
+  purpose TEXT DEFAULT '',
+  date VARCHAR(100) DEFAULT '',
+  reminder_morning BOOLEAN DEFAULT FALSE,
+  reminder_afternoon BOOLEAN DEFAULT FALSE,
+  reminder_night BOOLEAN DEFAULT FALSE
 );
 
 -- Emergency Contacts Table

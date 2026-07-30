@@ -17,6 +17,9 @@ export const Medications: React.FC = () => {
   const [frequency, setFrequency] = useState('');
   const [purpose, setPurpose] = useState('');
   const [date, setDate] = useState('');
+  const [reminderMorning, setReminderMorning] = useState(false);
+  const [reminderAfternoon, setReminderAfternoon] = useState(false);
+  const [reminderNight, setReminderNight] = useState(false);
 
   if (!user) return null;
 
@@ -26,6 +29,9 @@ export const Medications: React.FC = () => {
     setFrequency('');
     setPurpose('');
     setDate(new Date().toISOString().split('T')[0]); // Default to today
+    setReminderMorning(false);
+    setReminderAfternoon(false);
+    setReminderNight(false);
     setEditingIdx(null);
     setShowAddModal(true);
   };
@@ -37,6 +43,9 @@ export const Medications: React.FC = () => {
     setFrequency(med.frequency);
     setPurpose(med.purpose || '');
     setDate(med.date || new Date().toISOString().split('T')[0]);
+    setReminderMorning(med.reminderMorning || false);
+    setReminderAfternoon(med.reminderAfternoon || false);
+    setReminderNight(med.reminderNight || false);
     setEditingIdx(idx);
     setShowAddModal(true);
   };
@@ -50,7 +59,10 @@ export const Medications: React.FC = () => {
       dosage: dosage.trim() || 'As prescribed',
       frequency: frequency.trim() || 'Daily',
       purpose: purpose.trim() || 'Routine',
-      date: date || new Date().toISOString().split('T')[0]
+      date: date || new Date().toISOString().split('T')[0],
+      reminderMorning,
+      reminderAfternoon,
+      reminderNight
     };
 
     if (editingIdx !== null) {
@@ -148,6 +160,29 @@ export const Medications: React.FC = () => {
                       <span>Started: {med.date}</span>
                     </div>
                   )}
+
+                  {(med.reminderMorning || med.reminderAfternoon || med.reminderNight) && (
+                    <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-outline-variant/20">
+                      <span className="text-[10px] font-semibold text-outline tracking-wider uppercase mr-1">Reminders:</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {med.reminderMorning && (
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            ☀️ Morning
+                          </span>
+                        )}
+                        {med.reminderAfternoon && (
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-orange-50 text-orange-700 border border-orange-200">
+                            🌤️ Afternoon
+                          </span>
+                        )}
+                        {med.reminderNight && (
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            🌙 Night
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-outline-variant/30 flex justify-between items-center text-sm">
@@ -225,6 +260,45 @@ export const Medications: React.FC = () => {
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-label-caps text-[10px] text-on-surface-variant pl-1">Daily Reminders (Schedule)</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReminderMorning(!reminderMorning)}
+                    className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                      reminderMorning 
+                        ? 'bg-amber-500/10 border-amber-500 text-amber-700 font-bold' 
+                        : 'bg-transparent border-outline-variant/45 text-on-surface-variant hover:bg-surface-variant'
+                    }`}
+                  >
+                    ☀️ Morning
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReminderAfternoon(!reminderAfternoon)}
+                    className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                      reminderAfternoon 
+                        ? 'bg-orange-500/10 border-orange-500 text-orange-700 font-bold' 
+                        : 'bg-transparent border-outline-variant/45 text-on-surface-variant hover:bg-surface-variant'
+                    }`}
+                  >
+                    🌤️ Afternoon
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReminderNight(!reminderNight)}
+                    className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                      reminderNight 
+                        ? 'bg-indigo-500/10 border-indigo-500 text-indigo-700 font-bold' 
+                        : 'bg-transparent border-outline-variant/45 text-on-surface-variant hover:bg-surface-variant'
+                    }`}
+                  >
+                    🌙 Night
+                  </button>
                 </div>
               </div>
 

@@ -134,7 +134,7 @@ const getPatientRecord = async (userId) => {
 
   const conditionsResult = await pool.query('SELECT name, severity, notes FROM conditions WHERE user_id = $1', [userId]);
   const allergiesResult = await pool.query('SELECT name, severity, notes FROM allergies WHERE user_id = $1', [userId]);
-  const medicationsResult = await pool.query('SELECT name, dosage, frequency, purpose, date FROM medications WHERE user_id = $1', [userId]);
+  const medicationsResult = await pool.query('SELECT name, dosage, frequency, purpose, date, reminder_morning AS "reminderMorning", reminder_afternoon AS "reminderAfternoon", reminder_night AS "reminderNight" FROM medications WHERE user_id = $1', [userId]);
   const contactsResult = await pool.query('SELECT name, relationship, phone FROM contacts WHERE user_id = $1', [userId]);
   const documentsResult = await pool.query('SELECT id, name, date, size, category, url FROM documents WHERE user_id = $1', [userId]);
 
@@ -219,8 +219,20 @@ const savePatientRecord = async (userId, email, record) => {
     if (Array.isArray(record.medications)) {
       for (const item of record.medications) {
         await pool.query(
-          'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose, date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [userId, email, record.name || '', item.name, item.dosage || '', item.frequency || '', item.purpose || '', item.date || '']
+          'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose, date, reminder_morning, reminder_afternoon, reminder_night) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+          [
+            userId, 
+            email, 
+            record.name || '', 
+            item.name, 
+            item.dosage || '', 
+            item.frequency || '', 
+            item.purpose || '', 
+            item.date || '',
+            item.reminderMorning || false,
+            item.reminderAfternoon || false,
+            item.reminderNight || false
+          ]
         );
       }
     }
@@ -600,7 +612,7 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
             logType = 'document';
             logTitle = 'Document Removed';
             logDesc = 'A document was removed from the secure vault.';
-          } else if (!arraysAreEqual(oldRecord.medications, patientRecord.medications, ['name', 'dosage', 'frequency', 'purpose'])) {
+          } else if (!arraysAreEqual(oldRecord.medications, patientRecord.medications, ['name', 'dosage', 'frequency', 'purpose', 'reminderMorning', 'reminderAfternoon', 'reminderNight'])) {
             shouldLog = true;
             logType = 'update';
             logTitle = 'Medications Updated';

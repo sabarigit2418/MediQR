@@ -1300,7 +1300,7 @@ export const PublicEmergencyProfile: React.FC = () => {
                         <tbody>
                           {record.medications.map((med, index) => (
                             <tr key={index}>
-                              <td className="font-semibold text-[#1B3A6B]">{med.name}</td>
+                              <td className="font-semibold text-[#1B3A6B]"> <div>{med.name}</div> {(med.reminderMorning || med.reminderAfternoon || med.reminderNight) && ( <div className="flex gap-1 mt-1 flex-wrap"> {med.reminderMorning && ( <span className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-700 border border-amber-200"> ☀️ Morning </span> )} {med.reminderAfternoon && ( <span className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold bg-orange-50 text-orange-700 border border-orange-200"> 🌤️ Afternoon </span> )} {med.reminderNight && ( <span className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"> 🌙 Night </span> )} </div> )} </td>
                               <td className="font-mono text-xs">{med.dosage}</td>
                               <td className="text-xs">{med.frequency}</td>
                               <td className="text-xs">{med.purpose || '-'}</td>

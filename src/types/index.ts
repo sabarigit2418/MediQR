@@ -10,6 +10,9 @@ export interface Medication {
   frequency: string;
   purpose?: string;
   date?: string;
+  reminderMorning?: boolean;
+  reminderAfternoon?: boolean;
+  reminderNight?: boolean;
 }
 
 export interface EmergencyContact {
