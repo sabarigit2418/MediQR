@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿const fs = require('fs');
+
+// 1. Write fully typed Medications.tsx
+const medsPath = 'C:/Users/SABARI/Music/Velan/fullweb/fullweb_MediQR/src/pages/Medications.tsx';
+const medsCode = `import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GlassCard } from '../components/GlassCard';
@@ -505,4 +509,30 @@ export const Medications: React.FC = () => {
       </div>
     </div>
   );
-};
+};`;
+
+fs.writeFileSync(medsPath, medsCode, 'utf8');
+console.log('✅ Medications.tsx typed & rewritten successfully!');
+
+// 2. Add formatTime helper to PublicEmergencyProfile.tsx
+const pubProfilePath = 'C:/Users/SABARI/Music/Velan/fullweb/fullweb_MediQR/src/pages/PublicEmergencyProfile.tsx';
+let pubContent = fs.readFileSync(pubProfilePath, 'utf8');
+const helper = `const formatTime = (timeStr?: string) => {
+  if (!timeStr) return '';
+  try {
+    const [hours, minutes] = timeStr.split(':');
+    const h = parseInt(hours, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const displayHour = h % 12 === 0 ? 12 : h % 12;
+    return displayHour + ':' + minutes + ' ' + ampm;
+  } catch (err) {
+    return timeStr;
+  }
+};`;
+
+if (!pubContent.includes('const formatTime =')) {
+  const lines = pubContent.replace(/\r\n/g, '\n').split('\n');
+  lines.splice(1, 0, helper);
+  fs.writeFileSync(pubProfilePath, lines.join('\n'), 'utf8');
+  console.log('✅ PublicEmergencyProfile.tsx formatTime helper successfully added!');
+}

@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿const fs = require('fs');
+const filePath = 'C:/Users/SABARI/Music/Velan/fullweb/fullweb_MediQR/src/pages/Medications.tsx';
+
+const newCode = `import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GlassCard } from '../components/GlassCard';
@@ -40,10 +43,10 @@ export const Medications: React.FC = () => {
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'scheduled' | 'needed'>('all');
+  const [filterTab, setFilterTab] = useState('all');
 
   // Taken dose tracking log
-  const [takenLog, setTakenLog] = useState<Record<string, boolean>>({});
+  const [takenLog, setTakenLog] = useState({});
   const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -57,7 +60,7 @@ export const Medications: React.FC = () => {
     }
   }, []);
 
-  const handleToggleTaken = (medName: string, slot: string) => {
+  const handleToggleTaken = (medName, slot) => {
     const key = medName + '_' + slot;
     const newLog = { ...takenLog, [key]: !takenLog[key] };
     setTakenLog(newLog);
@@ -82,7 +85,7 @@ export const Medications: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleOpenEdit = (idx: number) => {
+  const handleOpenEdit = (idx) => {
     const med = user.patientRecord.medications[idx];
     setName(med.name);
     setDosage(med.dosage);
@@ -99,7 +102,7 @@ export const Medications: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
 
@@ -136,7 +139,7 @@ export const Medications: React.FC = () => {
     return dateB.localeCompare(dateA);
   });
 
-  const getOriginalIndex = (sortedMed: any) => {
+  const getOriginalIndex = (sortedMed) => {
     return user.patientRecord.medications.findIndex(
       m => m.name === sortedMed.name && m.dosage === sortedMed.dosage && m.date === sortedMed.date
     );
@@ -505,4 +508,7 @@ export const Medications: React.FC = () => {
       </div>
     </div>
   );
-};
+};`;
+
+fs.writeFileSync(filePath, newCode, 'utf8');
+console.log('✅ Overwrote Medications.tsx successfully via fs.writeFileSync script!');

@@ -8,6 +8,19 @@ interface TakenLog {
   [key: string]: boolean;
 }
 
+const formatTime = (timeStr?: string) => {
+  if (!timeStr) return '';
+  try {
+    const [hours, minutes] = timeStr.split(':');
+    const h = parseInt(hours, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const displayHour = h % 12 === 0 ? 12 : h % 12;
+    return displayHour + ':' + minutes + ' ' + ampm;
+  } catch (err) {
+    return timeStr;
+  }
+};
+
 export const Reminders: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -39,10 +52,18 @@ export const Reminders: React.FC = () => {
 
   const medications = user.patientRecord?.medications || [];
 
-  // Filter medications by schedule
-  const morningMeds = medications.filter(m => m.reminderMorning);
-  const afternoonMeds = medications.filter(m => m.reminderAfternoon);
-  const nightMeds = medications.filter(m => m.reminderNight);
+  // Filter medications by schedule and sort chronologically by time
+  const morningMeds = medications
+    .filter(m => m.reminderMorning)
+    .sort((a, b) => (a.reminderMorningTime || '08:00').localeCompare(b.reminderMorningTime || '08:00'));
+
+  const afternoonMeds = medications
+    .filter(m => m.reminderAfternoon)
+    .sort((a, b) => (a.reminderAfternoonTime || '14:00').localeCompare(b.reminderAfternoonTime || '14:00'));
+
+  const nightMeds = medications
+    .filter(m => m.reminderNight)
+    .sort((a, b) => (a.reminderNightTime || '21:00').localeCompare(b.reminderNightTime || '21:00'));
 
   const totalScheduled = morningMeds.length + afternoonMeds.length + nightMeds.length;
 
@@ -154,7 +175,7 @@ export const Reminders: React.FC = () => {
                             {med.name}
                           </p>
                           <p className="text-xs text-on-surface-variant truncate">
-                            {med.dosage} &bull; {med.purpose}
+                            {med.dosage} &bull; {med.purpose} &bull; Time: {formatTime(med.reminderMorningTime || '08:00')}
                           </p>
                         </div>
                       </div>
@@ -203,7 +224,7 @@ export const Reminders: React.FC = () => {
                             {med.name}
                           </p>
                           <p className="text-xs text-on-surface-variant truncate">
-                            {med.dosage} &bull; {med.purpose}
+                            {med.dosage} &bull; {med.purpose} &bull; Time: {formatTime(med.reminderAfternoonTime || '14:00')}
                           </p>
                         </div>
                       </div>
@@ -252,7 +273,7 @@ export const Reminders: React.FC = () => {
                             {med.name}
                           </p>
                           <p className="text-xs text-on-surface-variant truncate">
-                            {med.dosage} &bull; {med.purpose}
+                            {med.dosage} &bull; {med.purpose} &bull; Time: {formatTime(med.reminderNightTime || '21:00')}
                           </p>
                         </div>
                       </div>

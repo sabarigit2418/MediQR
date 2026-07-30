@@ -11,8 +11,11 @@ export interface Medication {
   purpose?: string;
   date?: string;
   reminderMorning?: boolean;
+  reminderMorningTime?: string;
   reminderAfternoon?: boolean;
+  reminderAfternoonTime?: string;
   reminderNight?: boolean;
+  reminderNightTime?: string;
 }
 
 export interface EmergencyContact {

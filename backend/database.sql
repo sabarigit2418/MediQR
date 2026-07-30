@@ -75,8 +75,11 @@ CREATE TABLE medications (
   purpose TEXT DEFAULT '',
   date VARCHAR(100) DEFAULT '',
   reminder_morning BOOLEAN DEFAULT FALSE,
+  reminder_morning_time VARCHAR(20) DEFAULT '08:00',
   reminder_afternoon BOOLEAN DEFAULT FALSE,
-  reminder_night BOOLEAN DEFAULT FALSE
+  reminder_afternoon_time VARCHAR(20) DEFAULT '14:00',
+  reminder_night BOOLEAN DEFAULT FALSE,
+  reminder_night_time VARCHAR(20) DEFAULT '21:00'
 );
 
 -- Emergency Contacts Table

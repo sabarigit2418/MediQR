@@ -30,8 +30,11 @@ CREATE TABLE IF NOT EXISTS medications (
   purpose TEXT DEFAULT '',
   date VARCHAR(100) DEFAULT '',
   reminder_morning BOOLEAN DEFAULT FALSE,
+  reminder_morning_time VARCHAR(20) DEFAULT '08:00',
   reminder_afternoon BOOLEAN DEFAULT FALSE,
-  reminder_night BOOLEAN DEFAULT FALSE
+  reminder_afternoon_time VARCHAR(20) DEFAULT '14:00',
+  reminder_night BOOLEAN DEFAULT FALSE,
+  reminder_night_time VARCHAR(20) DEFAULT '21:00'
 );
 
 CREATE TABLE IF NOT EXISTS contacts (
@@ -75,6 +78,9 @@ ALTER TABLE medications ADD COLUMN IF NOT EXISTS date VARCHAR(100) DEFAULT '';
 ALTER TABLE medications ADD COLUMN IF NOT EXISTS reminder_morning BOOLEAN DEFAULT FALSE;
 ALTER TABLE medications ADD COLUMN IF NOT EXISTS reminder_afternoon BOOLEAN DEFAULT FALSE;
 ALTER TABLE medications ADD COLUMN IF NOT EXISTS reminder_night BOOLEAN DEFAULT FALSE;
+ALTER TABLE medications ADD COLUMN IF NOT EXISTS reminder_morning_time VARCHAR(20) DEFAULT '08:00';
+ALTER TABLE medications ADD COLUMN IF NOT EXISTS reminder_afternoon_time VARCHAR(20) DEFAULT '14:00';
+ALTER TABLE medications ADD COLUMN IF NOT EXISTS reminder_night_time VARCHAR(20) DEFAULT '21:00';
 ALTER TABLE contacts ADD COLUMN IF NOT EXISTS email VARCHAR(255) DEFAULT '';
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS email VARCHAR(255) DEFAULT '';
 

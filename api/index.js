@@ -134,7 +134,7 @@ const getPatientRecord = async (userId) => {
 
   const conditionsResult = await pool.query('SELECT name, severity, notes FROM conditions WHERE user_id = $1', [userId]);
   const allergiesResult = await pool.query('SELECT name, severity, notes FROM allergies WHERE user_id = $1', [userId]);
-  const medicationsResult = await pool.query('SELECT name, dosage, frequency, purpose, date, reminder_morning AS "reminderMorning", reminder_afternoon AS "reminderAfternoon", reminder_night AS "reminderNight" FROM medications WHERE user_id = $1', [userId]);
+  const medicationsResult = await pool.query('SELECT name, dosage, frequency, purpose, date, reminder_morning AS "reminderMorning", reminder_morning_time AS "reminderMorningTime", reminder_afternoon AS "reminderAfternoon", reminder_afternoon_time AS "reminderAfternoonTime", reminder_night AS "reminderNight", reminder_night_time AS "reminderNightTime" FROM medications WHERE user_id = $1', [userId]);
   const contactsResult = await pool.query('SELECT name, relationship, phone FROM contacts WHERE user_id = $1', [userId]);
   const documentsResult = await pool.query('SELECT id, name, date, size, category, url FROM documents WHERE user_id = $1', [userId]);
 
@@ -177,8 +177,11 @@ const getPatientRecord = async (userId) => {
         purpose: m.purpose || '',
         date: m.date || '',
         reminderMorning: Boolean(m.reminderMorning),
+        reminderMorningTime: m.reminderMorningTime || '08:00',
         reminderAfternoon: Boolean(m.reminderAfternoon),
-        reminderNight: Boolean(m.reminderNight)
+        reminderAfternoonTime: m.reminderAfternoonTime || '14:00',
+        reminderNight: Boolean(m.reminderNight),
+        reminderNightTime: m.reminderNightTime || '21:00'
       });
     }
   }
@@ -291,7 +294,7 @@ const savePatientRecord = async (userId, email, record) => {
         if (seen.has(normalized)) continue;
         seen.add(normalized);
         await pool.query(
-          'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose, date, reminder_morning, reminder_afternoon, reminder_night) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+          'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose, date, reminder_morning, reminder_morning_time, reminder_afternoon, reminder_afternoon_time, reminder_night, reminder_night_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
           [
             userId, 
             email, 
@@ -302,8 +305,11 @@ const savePatientRecord = async (userId, email, record) => {
             item.purpose || '', 
             item.date || '',
             item.reminderMorning || false,
+            item.reminderMorningTime || '08:00',
             item.reminderAfternoon || false,
-            item.reminderNight || false
+            item.reminderAfternoonTime || '14:00',
+            item.reminderNight || false,
+            item.reminderNightTime || '21:00'
           ]
         );
       }
@@ -689,7 +695,7 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
             logType = 'document';
             logTitle = 'Document Removed';
             logDesc = 'A document was removed from the secure vault.';
-          } else if (!arraysAreEqual(oldRecord.medications, patientRecord.medications, ['name', 'dosage', 'frequency', 'purpose', 'reminderMorning', 'reminderAfternoon', 'reminderNight'])) {
+          } else if (!arraysAreEqual(oldRecord.medications, patientRecord.medications, ['name', 'dosage', 'frequency', 'purpose', 'reminderMorning', 'reminderMorningTime', 'reminderAfternoon', 'reminderAfternoonTime', 'reminderNight', 'reminderNightTime'])) {
             shouldLog = true;
             logType = 'update';
             logTitle = 'Medications Updated';

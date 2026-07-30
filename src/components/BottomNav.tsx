@@ -32,7 +32,7 @@ export const BottomNav: React.FC = () => {
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-100 flex items-center justify-around md:hidden shadow-lg pb-safe">
       <BottomNavItem to="/dashboard" icon="dashboard" label="Home" />
       <BottomNavItem to="/documents" icon="description" label="Vault" />
-      <BottomNavItem to="/profile/reminders" icon="alarm" label="Alarms" />
+      <BottomNavItem to="/profile/reminders" icon="alarm" label="Reminders" />
       <BottomNavItem to="/qr/my-code" icon="qr_code" label="My QR" />
       <BottomNavItem to="/profile/setup" icon="person" label="Profile" />
     </nav>

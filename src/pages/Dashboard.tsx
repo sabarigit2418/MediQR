@@ -71,7 +71,7 @@ export const Dashboard: React.FC = () => {
               <span className="material-symbols-outlined text-[22px]">alarm</span>
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-on-surface">Medication Alarms Schedule</h3>
+              <h3 className="font-semibold text-sm text-on-surface">Medication Reminders Schedule</h3>
               <p className="text-xs text-on-surface-variant">Check off your morning, afternoon, or night doses.</p>
             </div>
           </div>
