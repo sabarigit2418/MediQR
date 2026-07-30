@@ -138,6 +138,63 @@ const getPatientRecord = async (userId) => {
   const contactsResult = await pool.query('SELECT name, relationship, phone FROM contacts WHERE user_id = $1', [userId]);
   const documentsResult = await pool.query('SELECT id, name, date, size, category, url FROM documents WHERE user_id = $1', [userId]);
 
+  // Deduplicate conditions
+  const conditions = [];
+  const seenConditions = new Set();
+  for (const c of conditionsResult.rows) {
+    if (!c.name) continue;
+    const norm = c.name.trim().toLowerCase();
+    if (!seenConditions.has(norm)) {
+      seenConditions.add(norm);
+      conditions.push({ name: c.name.trim(), severity: c.severity || 'Mild', notes: c.notes || '' });
+    }
+  }
+
+  // Deduplicate allergies
+  const allergies = [];
+  const seenAllergies = new Set();
+  for (const a of allergiesResult.rows) {
+    if (!a.name) continue;
+    const norm = a.name.trim().toLowerCase();
+    if (!seenAllergies.has(norm)) {
+      seenAllergies.add(norm);
+      allergies.push({ name: a.name.trim(), severity: a.severity || 'Mild', notes: a.notes || '' });
+    }
+  }
+
+  // Deduplicate medications
+  const medications = [];
+  const seenMeds = new Set();
+  for (const m of medicationsResult.rows) {
+    if (!m.name) continue;
+    const norm = `${m.name.trim().toLowerCase()}_${(m.dosage || '').trim().toLowerCase()}`;
+    if (!seenMeds.has(norm)) {
+      seenMeds.add(norm);
+      medications.push({
+        name: m.name.trim(),
+        dosage: m.dosage || '',
+        frequency: m.frequency || '',
+        purpose: m.purpose || '',
+        date: m.date || '',
+        reminderMorning: Boolean(m.reminderMorning),
+        reminderAfternoon: Boolean(m.reminderAfternoon),
+        reminderNight: Boolean(m.reminderNight)
+      });
+    }
+  }
+
+  // Deduplicate contacts
+  const contacts = [];
+  const seenContacts = new Set();
+  for (const c of contactsResult.rows) {
+    if (!c.name) continue;
+    const norm = `${c.name.trim().toLowerCase()}_${(c.phone || '').trim()}`;
+    if (!seenContacts.has(norm)) {
+      seenContacts.add(norm);
+      contacts.push({ name: c.name.trim(), relationship: c.relationship || '', phone: c.phone || '' });
+    }
+  }
+
   return {
     name: profile.name || '',
     age: profile.age || '',
@@ -149,10 +206,10 @@ const getPatientRecord = async (userId) => {
     dateOfBirth: profile.date_of_birth || '',
     mobileNumber: profile.mobile_number || '',
     qrId: profile.qr_id || `mqr-${userId.slice(0, 8)}`,
-    conditions: conditionsResult.rows || [],
-    allergies: allergiesResult.rows || [],
-    medications: medicationsResult.rows || [],
-    contacts: contactsResult.rows || [],
+    conditions,
+    allergies,
+    medications,
+    contacts,
     documents: documentsResult.rows || []
   };
 };
@@ -197,34 +254,49 @@ const savePatientRecord = async (userId, email, record) => {
   try {
     await pool.query('DELETE FROM conditions WHERE user_id = $1', [userId]);
     if (Array.isArray(record.conditions)) {
+      const seen = new Set();
       for (const item of record.conditions) {
+        if (!item || !item.name) continue;
+        const normalized = item.name.trim().toLowerCase();
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
         await pool.query(
           'INSERT INTO conditions (user_id, email, user_name, name, severity, notes) VALUES ($1, $2, $3, $4, $5, $6)',
-          [userId, email, record.name || '', item.name, item.severity || '', item.notes || '']
+          [userId, email, record.name || '', item.name.trim(), item.severity || 'Mild', item.notes || '']
         );
       }
     }
 
     await pool.query('DELETE FROM allergies WHERE user_id = $1', [userId]);
     if (Array.isArray(record.allergies)) {
+      const seen = new Set();
       for (const item of record.allergies) {
+        if (!item || !item.name) continue;
+        const normalized = item.name.trim().toLowerCase();
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
         await pool.query(
           'INSERT INTO allergies (user_id, email, user_name, name, severity, notes) VALUES ($1, $2, $3, $4, $5, $6)',
-          [userId, email, record.name || '', item.name, item.severity || '', item.notes || '']
+          [userId, email, record.name || '', item.name.trim(), item.severity || 'Mild', item.notes || '']
         );
       }
     }
 
     await pool.query('DELETE FROM medications WHERE user_id = $1', [userId]);
     if (Array.isArray(record.medications)) {
+      const seen = new Set();
       for (const item of record.medications) {
+        if (!item || !item.name) continue;
+        const normalized = `${item.name.trim().toLowerCase()}_${(item.dosage || '').trim().toLowerCase()}`;
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
         await pool.query(
           'INSERT INTO medications (user_id, email, user_name, name, dosage, frequency, purpose, date, reminder_morning, reminder_afternoon, reminder_night) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
           [
             userId, 
             email, 
             record.name || '', 
-            item.name, 
+            item.name.trim(), 
             item.dosage || '', 
             item.frequency || '', 
             item.purpose || '', 
@@ -239,10 +311,15 @@ const savePatientRecord = async (userId, email, record) => {
 
     await pool.query('DELETE FROM contacts WHERE user_id = $1', [userId]);
     if (Array.isArray(record.contacts)) {
+      const seen = new Set();
       for (const item of record.contacts) {
+        if (!item || !item.name) continue;
+        const normalized = `${item.name.trim().toLowerCase()}_${(item.phone || '').trim()}`;
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
         await pool.query(
           'INSERT INTO contacts (user_id, email, user_name, name, relationship, phone) VALUES ($1, $2, $3, $4, $5, $6)',
-          [userId, email, record.name || '', item.name, item.relationship || '', item.phone || '']
+          [userId, email, record.name || '', item.name.trim(), item.relationship || '', item.phone || '']
         );
       }
     }
