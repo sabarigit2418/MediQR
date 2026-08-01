@@ -231,6 +231,65 @@ const logActivity = async (userId, type, title, description, metadata = {}) => {
 };
 
 const savePatientRecord = async (userId, email, record) => {
+  let shouldLog = false;
+  let logType = 'update';
+  let logTitle = '';
+  let logDesc = '';
+
+  const arraysAreEqual = (arr1, arr2, keys) => {
+    const a1 = Array.isArray(arr1) ? arr1 : [];
+    const a2 = Array.isArray(arr2) ? arr2 : [];
+    if (a1.length !== a2.length) return false;
+    for (let i = 0; i < a1.length; i++) {
+      for (const key of keys) {
+        if (a1[i]?.[key] !== a2[i]?.[key]) return false;
+      }
+    }
+    return true;
+  };
+
+  try {
+    const oldRecord = await getPatientRecord(userId);
+    if (oldRecord) {
+      const oldDocCount = oldRecord.documents?.length || 0;
+      const newDocCount = record.documents?.length || 0;
+
+      if (newDocCount > oldDocCount) {
+        shouldLog = true;
+        logType = 'document';
+        logTitle = 'Document Uploaded';
+        logDesc = `New document "${record.documents[newDocCount - 1]?.name || 'Medical file'}" uploaded to secure vault.`;
+      } else if (newDocCount < oldDocCount) {
+        shouldLog = true;
+        logType = 'document';
+        logTitle = 'Document Removed';
+        logDesc = 'A document was removed from the secure vault.';
+      } else if (!arraysAreEqual(oldRecord.medications, record.medications, ['name', 'dosage', 'frequency', 'purpose', 'reminderMorning', 'reminderMorningTime', 'reminderAfternoon', 'reminderAfternoonTime', 'reminderNight', 'reminderNightTime'])) {
+        shouldLog = true;
+        logType = 'update';
+        logTitle = 'Medications Updated';
+        logDesc = 'Current medication prescriptions updated.';
+      } else if (!arraysAreEqual(oldRecord.allergies, record.allergies, ['name', 'severity', 'notes'])) {
+        shouldLog = true;
+        logType = 'update';
+        logTitle = 'Allergies Updated';
+        logDesc = 'Active allergy alert conditions updated.';
+      } else if (!arraysAreEqual(oldRecord.conditions, record.conditions, ['name', 'severity', 'notes'])) {
+        shouldLog = true;
+        logType = 'update';
+        logTitle = 'Conditions Updated';
+        logDesc = 'Chronic medical conditions list updated.';
+      } else if (!arraysAreEqual(oldRecord.contacts, record.contacts, ['name', 'relationship', 'phone'])) {
+        shouldLog = true;
+        logType = 'update';
+        logTitle = 'Emergency Contacts Updated';
+        logDesc = 'Emergency ICE contacts updated.';
+      }
+    }
+  } catch (compareErr) {
+    console.error('Failed to compare records for logging:', compareErr.message);
+  }
+
   const qrId = record.qrId || `mqr-${userId.slice(0, 8)}`;
   
   await pool.query(
@@ -341,6 +400,10 @@ const savePatientRecord = async (userId, email, record) => {
     }
 
     await pool.query('COMMIT');
+
+    if (shouldLog) {
+      await logActivity(userId, logType, logTitle, logDesc);
+    }
   } catch (error) {
     await pool.query('ROLLBACK');
     throw error;
@@ -662,69 +725,7 @@ app.put('/api/profiles/me', authenticateToken, async (req, res) => {
     }
 
     if (patientRecord) {
-      let shouldLog = false;
-      let logType = 'update';
-      let logTitle = '';
-      let logDesc = '';
-
-      const arraysAreEqual = (arr1, arr2, keys) => {
-        const a1 = Array.isArray(arr1) ? arr1 : [];
-        const a2 = Array.isArray(arr2) ? arr2 : [];
-        if (a1.length !== a2.length) return false;
-        for (let i = 0; i < a1.length; i++) {
-          for (const key of keys) {
-            if (a1[i]?.[key] !== a2[i]?.[key]) return false;
-          }
-        }
-        return true;
-      };
-
-      try {
-        const oldRecord = await getPatientRecord(req.user.id);
-        if (oldRecord) {
-          const oldDocCount = oldRecord.documents?.length || 0;
-          const newDocCount = patientRecord.documents?.length || 0;
-
-          if (newDocCount > oldDocCount) {
-            shouldLog = true;
-            logType = 'document';
-            logTitle = 'Document Uploaded';
-            logDesc = `New document "${patientRecord.documents[newDocCount - 1]?.name || 'Medical file'}" uploaded to secure vault.`;
-          } else if (newDocCount < oldDocCount) {
-            shouldLog = true;
-            logType = 'document';
-            logTitle = 'Document Removed';
-            logDesc = 'A document was removed from the secure vault.';
-          } else if (!arraysAreEqual(oldRecord.medications, patientRecord.medications, ['name', 'dosage', 'frequency', 'purpose', 'reminderMorning', 'reminderMorningTime', 'reminderAfternoon', 'reminderAfternoonTime', 'reminderNight', 'reminderNightTime'])) {
-            shouldLog = true;
-            logType = 'update';
-            logTitle = 'Medications Updated';
-            logDesc = 'Current medication prescriptions updated.';
-          } else if (!arraysAreEqual(oldRecord.allergies, patientRecord.allergies, ['name', 'severity', 'notes'])) {
-            shouldLog = true;
-            logType = 'update';
-            logTitle = 'Allergies Updated';
-            logDesc = 'Active allergy alert conditions updated.';
-          } else if (!arraysAreEqual(oldRecord.conditions, patientRecord.conditions, ['name', 'severity', 'notes'])) {
-            shouldLog = true;
-            logType = 'update';
-            logTitle = 'Conditions Updated';
-            logDesc = 'Chronic medical conditions list updated.';
-          } else if (!arraysAreEqual(oldRecord.contacts, patientRecord.contacts, ['name', 'relationship', 'phone'])) {
-            shouldLog = true;
-            logType = 'update';
-            logTitle = 'Emergency Contacts Updated';
-            logDesc = 'Emergency ICE contacts updated.';
-          }
-        }
-      } catch (compareErr) {
-        console.error('Failed to compare records for logging:', compareErr.message);
-      }
-
       await savePatientRecord(req.user.id, req.user.email, patientRecord);
-      if (shouldLog) {
-        await logActivity(req.user.id, logType, logTitle, logDesc);
-      }
     }
 
     res.status(200).json({ success: true });
@@ -803,6 +804,14 @@ app.get('/api/records/:qrId', async (req, res) => {
     }
     const userId = result.rows[0].user_id;
     const patientRecord = await getPatientRecord(userId);
+
+    // Log QR Scan activity history
+    await logActivity(
+      userId,
+      'scan',
+      'Profile Scanned',
+      'Emergency profile was accessed via QR code scan.'
+    );
 
     res.status(200).json({
       patientRecord: patientRecord,
