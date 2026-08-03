@@ -220,6 +220,16 @@ const getPatientRecord = async (userId) => {
 const logActivity = async (userId, type, title, description, metadata = {}) => {
   if (!pool) return;
   try {
+    const dupCheck = await pool.query(
+      `SELECT id FROM activity_logs 
+       WHERE user_id = $1 AND type = $2 AND title = $3 AND description = $4 AND created_at > NOW() - INTERVAL '15 seconds'`,
+      [userId, type, title, description]
+    );
+    if (dupCheck.rows.length > 0) {
+      console.log(`Skipped duplicate activity log: [${type}] ${title} for user: ${userId}`);
+      return;
+    }
+
     await pool.query(
       'INSERT INTO activity_logs (user_id, type, title, description, metadata) VALUES ($1, $2, $3, $4, $5)',
       [userId, type, title, description, JSON.stringify(metadata)]
@@ -242,7 +252,13 @@ const savePatientRecord = async (userId, email, record) => {
     if (a1.length !== a2.length) return false;
     for (let i = 0; i < a1.length; i++) {
       for (const key of keys) {
-        if (a1[i]?.[key] !== a2[i]?.[key]) return false;
+        let val1 = a1[i]?.[key];
+        let val2 = a2[i]?.[key];
+        if (val1 === undefined || val1 === null) val1 = '';
+        if (val2 === undefined || val2 === null) val2 = '';
+        if (val1 === false) val1 = '';
+        if (val2 === false) val2 = '';
+        if (String(val1).trim() !== String(val2).trim()) return false;
       }
     }
     return true;
@@ -577,6 +593,24 @@ app.post('/api/auth/reset-password-login', async (req, res) => {
   } catch (error) {
     console.error('Reset password/OTP login error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// --- DEBUG ENDPOINT (GET LATEST OTP ON LOCALHOST) ---
+app.get('/api/debug/latest-otp', async (req, res) => {
+  if (!pool) return res.status(500).json({ error: 'Database connection not initialized.' });
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ error: 'Email query parameter is required' });
+  }
+  try {
+    const result = await pool.query('SELECT otp_code FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(200).json({ otp: result.rows[0].otp_code || 'null' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
